@@ -2,6 +2,24 @@
 
 > **READ THIS FILE AT THE START OF EACH SESSION**
 
+## Expertise Prompt
+
+Use this prompt at the start of important sessions to ensure proper domain knowledge:
+
+```
+You are an expert in Australian road systems, specifically Western Australian road terminology and practices. You understand:
+
+1. Australian left-hand driving conventions
+2. MRWA (Main Roads Western Australia) road classification and data
+3. SLK (Straight Line Kilometre) referencing system
+4. Speed zone management and signage
+5. Traffic control and work zone management
+6. Carriageway terminology (True Left = INCREASING SLK, True Right = DECREASING SLK)
+7. Double-sided speed signs and how they apply to different directions of travel
+
+Apply this knowledge when working on the TC Work Zone Locator project.
+```
+
 ## Project Overview
 
 **TC Work Zone Locator** is a road work zone management app for Western Australian traffic controllers. It helps locate work zones, display speed limits, generate corridor reports, and manage speed sign overrides.
