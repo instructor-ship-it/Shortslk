@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -136,26 +136,39 @@ const DEFAULT_SIGNS: SpeedSignOverride[] = [
 
 // Load data from localStorage
 function loadFromStorage(): OverridesData {
-  if (typeof window === 'undefined') {
-    return { version: '2.0', last_updated: new Date().toISOString().split('T')[0], signs: DEFAULT_SIGNS };
-  }
-  
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const data = JSON.parse(stored);
-      return data;
-    }
-  } catch {
-    // Ignore errors
-  }
-  
-  // Initialize with default data
+  // Default data structure
   const defaultData: OverridesData = {
     version: '2.0',
     last_updated: new Date().toISOString().split('T')[0],
     signs: DEFAULT_SIGNS
   };
+
+  if (typeof window === 'undefined') {
+    return defaultData;
+  }
+  
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      
+      // Validate the data structure
+      if (parsed && typeof parsed === 'object') {
+        // Ensure we have a valid signs array
+        const signs = Array.isArray(parsed.signs) ? parsed.signs : [];
+        
+        return {
+          version: parsed.version || '2.0',
+          last_updated: parsed.last_updated || new Date().toISOString().split('T')[0],
+          signs: signs.length > 0 ? signs : DEFAULT_SIGNS
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error loading from localStorage:', error);
+  }
+  
+  // Initialize with default data if nothing stored or error occurred
   saveToStorage(defaultData);
   return defaultData;
 }
@@ -184,6 +197,7 @@ export default function OverridesPage() {
   const [editingSign, setEditingSign] = useState<SpeedSignOverride | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // New sign form state
   const [newSign, setNewSign] = useState({
@@ -388,16 +402,86 @@ export default function OverridesPage() {
 
   const exportData = () => {
     const data = loadFromStorage();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `speed-overrides-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showMessage('success', 'Data exported successfully');
+    
+    // Ensure we have data to export
+    if (!data || !data.signs || data.signs.length === 0) {
+      showMessage('error', 'No data to export');
+      return;
+    }
+    
+    try {
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `speed-overrides-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showMessage('success', `Exported ${data.signs.length} signs successfully`);
+    } catch (error) {
+      console.error('Export error:', error);
+      showMessage('error', 'Failed to export data');
+    }
+  };
+
+  const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const parsed = JSON.parse(content);
+        
+        // Validate the structure
+        if (!parsed.signs || !Array.isArray(parsed.signs)) {
+          showMessage('error', 'Invalid file format: missing signs array');
+          return;
+        }
+
+        // Validate each sign has required fields
+        for (const sign of parsed.signs) {
+          if (!sign.id || !sign.road_id || sign.slk === undefined || !sign.front_speed) {
+            showMessage('error', 'Invalid sign data: some signs missing required fields');
+            return;
+          }
+        }
+
+        // Save to localStorage
+        const dataToSave: OverridesData = {
+          version: parsed.version || '2.0',
+          last_updated: parsed.last_updated || new Date().toISOString().split('T')[0],
+          signs: parsed.signs
+        };
+        
+        saveToStorage(dataToSave);
+        showMessage('success', `Imported ${parsed.signs.length} signs successfully`);
+        loadData();
+      } catch (error) {
+        console.error('Import error:', error);
+        showMessage('error', 'Failed to parse JSON file');
+      }
+    };
+    
+    reader.readAsText(file);
+    // Reset the input so the same file can be selected again
+    event.target.value = '';
+  };
+
+  const triggerImport = () => {
+    fileInputRef.current?.click();
+  };
+
+  const clearAllData = () => {
+    if (confirm('Are you sure you want to clear ALL data? This cannot be undone.')) {
+      localStorage.removeItem(STORAGE_KEY);
+      showMessage('success', 'All data cleared. Refreshing...');
+      setTimeout(() => loadData(), 500);
+    }
   };
 
   const generateMrwaExceptionReport = async () => {
@@ -602,6 +686,15 @@ This data should be verified against MRWA records before making database updates
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3 mb-4">
+        {/* Hidden file input for import */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept=".json"
+          onChange={importData}
+          className="hidden"
+        />
+        
         <Button
           onClick={generateMrwaExceptionReport}
           disabled={generatingReport || selectedIds.size === 0}
@@ -634,10 +727,22 @@ This data should be verified against MRWA records before making database updates
           📤 Export
         </Button>
         <Button
+          onClick={triggerImport}
+          className="bg-cyan-600 hover:bg-cyan-700"
+        >
+          📥 Import
+        </Button>
+        <Button
           onClick={loadData}
           className="bg-gray-700 hover:bg-gray-600 text-white"
         >
           Refresh
+        </Button>
+        <Button
+          onClick={clearAllData}
+          className="bg-red-900 hover:bg-red-800 text-red-300"
+        >
+          Clear All
         </Button>
       </div>
 
