@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M031 Northam Cranbrook - Speed Limit Comparison</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { color: #f8fafc; margin-bottom: 5px; }
+    h2 { color: #94a3b8; font-size: 1rem; margin-bottom: 20px; font-weight: normal; }
+    
+    .summary {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    .summary-item .label { color: #94a3b8; font-size: 0.9rem; }
+    .summary-item .value { color: #f1f5f9; font-size: 1.5rem; font-weight: bold; }
+    
+    .chart-container {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .speed-bar {
+      display: flex;
+      height: 60px;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    
+    .speed-segment {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 0.9rem;
+      position: relative;
+    }
+    
+    .speed-segment:hover {
+      filter: brightness(1.2);
+    }
+    
+    .speed-50 { background: #ef4444; }
+    .speed-60 { background: #f97316; }
+    .speed-70 { background: #eab308; }
+    .speed-80 { background: #84cc16; }
+    .speed-90 { background: #22c55e; }
+    .speed-100 { background: #14b8a6; }
+    .speed-110 { background: #3b82f6; }
+    
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.85rem;
+    }
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+    }
+    
+    .axis {
+      display: flex;
+      justify-content: space-between;
+      color: #64748b;
+      font-size: 0.8rem;
+      margin-top: 5px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background: #1e293b;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #334155;
+    }
+    th {
+      background: #0f172a;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    tr:hover { background: #334155; }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+    
+    .discrepancy { background: #fbbf24; color: #000; }
+    .match { background: #22c55e; }
+    
+    .info-box {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      border-left: 4px solid #3b82f6;
+    }
+    
+    .osm-box {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      border-left: 4px solid #8b5cf6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛣️ M031 - Northam Cranbrook Road</h1>
+    <h2>Speed Limit Comparison: SLK 0.0 to 66.0</h2>
+    
+    <div class="summary">
+      <div class="summary-item">
+        <div class="label">Road ID</div>
+        <div class="value">M031</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">MRWA Segments</div>
+        <div class="value">20</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">MRWA Speeds</div>
+        <div class="value">50-110 km/h</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">OSM Speeds</div>
+        <div class="value">90, 110 km/h</div>
+      </div>
+    </div>
+    
+    <div class="info-box">
+      <strong>⚠️ Key Finding:</strong> MRWA shows detailed speed variations (50-110 km/h) including urban sections (50-70 km/h), 
+      but OSM only shows 90-110 km/h. This suggests OSM is missing the built-up/township area speed limits.
+    </div>
+    
+    <div class="chart-container">
+      <h3 style="margin-bottom: 15px;">MRWA Speed Limits (Visual)</h3>
+      <div class="speed-bar" id="mrwa-bar"></div>
+      <div class="axis">
+        <span>SLK 0</span>
+        <span>SLK 16.5</span>
+        <span>SLK 33</span>
+        <span>SLK 49.5</span>
+        <span>SLK 66</span>
+      </div>
+      
+      <div class="legend">
+        <div class="legend-item"><div class="legend-color speed-50"></div>50 km/h</div>
+        <div class="legend-item"><div class="legend-color speed-60"></div>60 km/h</div>
+        <div class="legend-item"><div class="legend-color speed-70"></div>70 km/h</div>
+        <div class="legend-item"><div class="legend-color speed-80"></div>80 km/h</div>
+        <div class="legend-item"><div class="legend-color speed-90"></div>90 km/h</div>
+        <div class="legend-item"><div class="legend-color speed-110"></div>110 km/h</div>
+      </div>
+    </div>
+    
+    <div class="osm-box">
+      <strong>📍 OSM Data:</strong> Shows only 90 km/h and 110 km/h for this road. 
+      The lower speed zones (50-80 km/h) in built-up areas are not recorded in OpenStreetMap.
+      <br><br>
+      <strong>Highway Type:</strong> trunk | <strong>Region:</strong> Wheatbelt | <strong>Segments:</strong> 2
+    </div>
+    
+    <h3 style="margin: 20px 0 10px;">Detailed MRWA Speed Zones (SLK 0-66)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>SLK Range</th>
+          <th>Length (km)</th>
+          <th>Speed Limit</th>
+          <th>OSM Comparison</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+    
+    <div class="info-box" style="border-color: #ef4444;">
+      <strong>🔴 Discrepancy Summary:</strong>
+      <ul style="margin-top: 10px; margin-left: 20px;">
+        <li><strong>SLK 0.0 - 2.4:</strong> MRWA shows 50-80 km/h (urban/transition), OSM has no data</li>
+        <li><strong>SLK 31.4 - 36.0:</strong> MRWA shows 60-90 km/h (township area), OSM missing this detail</li>
+        <li><strong>SLK 64.8 - 66.0:</strong> MRWA shows 80 km/h, OSM has no data</li>
+      </ul>
+    </div>
+  </div>
+  
+  <script>
+    // MRWA data for M031 SLK 0-66
+    const mrwaData = [
+      { start: 0, end: 0.5, speed: 50 },
+      { start: 0.5, end: 0.86, speed: 70 },
+      { start: 0.86, end: 1.36, speed: 70 },
+      { start: 1.36, end: 1.85, speed: 70 },
+      { start: 1.85, end: 2.4, speed: 80 },
+      { start: 2.4, end: 2.61, speed: 90 },
+      { start: 2.61, end: 2.79, speed: 90 },
+      { start: 2.79, end: 12.59, speed: 110 },
+      { start: 12.59, end: 31.43, speed: 110 },
+      { start: 31.43, end: 32.45, speed: 90 },
+      { start: 32.45, end: 33.4, speed: 70 },
+      { start: 33.4, end: 33.82, speed: 70 },
+      { start: 33.82, end: 34.52, speed: 60 },
+      { start: 34.52, end: 35.34, speed: 60 },
+      { start: 35.34, end: 36, speed: 60 },
+      { start: 36, end: 36.02, speed: 90 },
+      { start: 36.02, end: 36.87, speed: 90 },
+      { start: 36.87, end: 55.09, speed: 110 },
+      { start: 53.73, end: 64.8, speed: 110 },
+      { start: 64.8, end: 65.73, speed: 80 }
+    ];
+    
+    const totalLength = 66;
+    
+    // Build speed bar
+    const bar = document.getElementById('mrwa-bar');
+    
+    // Consolidate adjacent segments with same speed
+    const consolidated = [];
+    let current = null;
+    
+    mrwaData.forEach(seg => {
+      if (seg.end > 66) return; // Only up to SLK 66
+      
+      if (!current) {
+        current = { start: seg.start, end: Math.min(seg.end, 66), speed: seg.speed };
+      } else if (current.speed === seg.speed && current.end === seg.start) {
+        current.end = Math.min(seg.end, 66);
+      } else {
+        consolidated.push(current);
+        current = { start: seg.start, end: Math.min(seg.end, 66), speed: seg.speed };
+      }
+    });
+    if (current) consolidated.push(current);
+    
+    // Render bar
+    consolidated.forEach(seg => {
+      const width = ((seg.end - seg.start) / totalLength * 100).toFixed(2);
+      const div = document.createElement('div');
+      div.className = `speed-segment speed-${seg.speed}`;
+      div.style.width = width + '%';
+      div.title = `SLK ${seg.start} - ${seg.end}: ${seg.speed} km/h`;
+      if (width > 5) {
+        div.textContent = seg.speed;
+      }
+      bar.appendChild(div);
+    });
+    
+    // Build table
+    const tbody = document.getElementById('table-body');
+    
+    mrwaData.forEach(seg => {
+      if (seg.end > 66) return;
+      
+      const length = (seg.end - seg.start).toFixed(2);
+      const osmSpeeds = [90, 110];
+      const hasOsm = osmSpeeds.includes(seg.speed);
+      
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>SLK ${seg.start} - ${seg.end}</td>
+        <td>${length} km</td>
+        <td><span class="badge speed-${seg.speed}" style="color: white;">${seg.speed} km/h</span></td>
+        <td>${hasOsm ? '<span class="badge match">✅ In OSM</span>' : '<span class="badge discrepancy">⚠️ Not in OSM</span>'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  </script>
+</body>
+</html>

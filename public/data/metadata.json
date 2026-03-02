@@ -1,0 +1,20 @@
+{
+  "download_date": "2026-02-26T22:24:46.892Z",
+  "total_roads": 69471,
+  "total_speed_zones": 69450,
+  "default_zones": 53608,
+  "corrected_zones": 2514,
+  "regions": [
+    "Metropolitan",
+    "Wheatbelt",
+    "South West",
+    "Great Southern",
+    "Kimberley",
+    "Mid West-Gascoyne",
+    "Pilbara",
+    "Unknown"
+  ],
+  "source": "MRWA Layer 8 - Legal Speed Limit (with default zone correction)",
+  "speed_zones_source": "MRWA Layer 8 - Legal Speed Limit",
+  "roads_source": "MRWA Layer 17 - Road Network"
+}

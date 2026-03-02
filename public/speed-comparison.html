@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speed Limit Comparison: MRWA vs OSM</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    h1 { color: #f8fafc; margin-bottom: 10px; }
+    h2 { color: #94a3b8; font-size: 1.1rem; margin-bottom: 20px; font-weight: normal; }
+    h3 { color: #f1f5f9; margin: 20px 0 10px; }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #334155;
+    }
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #3b82f6;
+    }
+    .stat-card .label {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+    .stat-card.match .value { color: #22c55e; }
+    .stat-card.warn .value { color: #f59e0b; }
+    .stat-card.error .value { color: #ef4444; }
+    
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 10px 20px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      cursor: pointer;
+      color: #94a3b8;
+      transition: all 0.2s;
+    }
+    .tab:hover { background: #334155; }
+    .tab.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    
+    .search-box {
+      margin: 20px 0;
+    }
+    .search-box input {
+      width: 100%;
+      max-width: 400px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #e2e8f0;
+      font-size: 1rem;
+    }
+    .search-box input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background: #1e293b;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #334155;
+    }
+    th {
+      background: #0f172a;
+      color: #94a3b8;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+    tr:hover { background: #334155; }
+    
+    .speed-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      margin: 2px;
+    }
+    .speed-mrwa { background: #3b82f6; }
+    .speed-osm { background: #8b5cf6; }
+    .speed-match { background: #22c55e; }
+    .speed-diff { background: #ef4444; }
+    
+    .severity-high { color: #ef4444; font-weight: bold; }
+    .severity-medium { color: #f59e0b; }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #94a3b8;
+    }
+    
+    .section { display: none; }
+    .section.active { display: block; }
+    
+    .info-box {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      border-left: 4px solid #3b82f6;
+    }
+    
+    .legend {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚗 Speed Limit Comparison Report</h1>
+    <h2>MRWA Official Data vs OpenStreetMap Community Data for Western Australia</h2>
+    
+    <div id="loading" class="loading">
+      Loading comparison data...
+    </div>
+    
+    <div id="content" style="display: none;">
+      <!-- Summary Stats -->
+      <div class="stats-grid" id="stats-grid"></div>
+      
+      <!-- Legend -->
+      <div class="legend">
+        <div class="legend-item">
+          <span class="speed-badge speed-mrwa">MRWA</span>
+          <span>Official WA Government data</span>
+        </div>
+        <div class="legend-item">
+          <span class="speed-badge speed-osm">OSM</span>
+          <span>OpenStreetMap community data</span>
+        </div>
+        <div class="legend-item">
+          <span class="speed-badge speed-match">Match</span>
+          <span>Speeds agree</span>
+        </div>
+        <div class="legend-item">
+          <span class="speed-badge speed-diff">Diff</span>
+          <span>Speeds differ</span>
+        </div>
+      </div>
+      
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab active" data-tab="discrepancies">⚠️ Discrepancies (<span id="discrepancy-count">0</span>)</div>
+        <div class="tab" data-tab="high">🔴 High Severity (<span id="high-count">0</span>)</div>
+        <div class="tab" data-tab="matches">✅ Exact Matches</div>
+        <div class="tab" data-tab="osm-only">📍 OSM Only</div>
+        <div class="tab" data-tab="mrwa-only">📍 MRWA Only</div>
+      </div>
+      
+      <!-- Search -->
+      <div class="search-box">
+        <input type="text" id="search" placeholder="Search by road name...">
+      </div>
+      
+      <!-- Sections -->
+      <div id="discrepancies" class="section active">
+        <div class="info-box">
+          <strong>Roads with different speed limits between sources.</strong>
+          <br>High severity = primary speeds don't match. Medium = same primary but different variations.
+        </div>
+        <table id="discrepancies-table">
+          <thead>
+            <tr>
+              <th>Road Name</th>
+              <th>MRWA Speeds</th>
+              <th>OSM Speeds</th>
+              <th>Severity</th>
+              <th>Segments</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      
+      <div id="high" class="section">
+        <div class="info-box">
+          <strong>High severity discrepancies only.</strong>
+          <br>These roads have significantly different primary speed limits and may need attention.
+        </div>
+        <table id="high-table">
+          <thead>
+            <tr>
+              <th>Road Name</th>
+              <th>MRWA Speeds</th>
+              <th>OSM Speeds</th>
+              <th>Difference</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      
+      <div id="matches" class="section">
+        <table id="matches-table">
+          <thead>
+            <tr>
+              <th>Road Name</th>
+              <th>Speed Limit</th>
+              <th>Segments</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      
+      <div id="osm-only" class="section">
+        <div class="info-box">
+          <strong>Roads found in OSM but not in MRWA data.</strong>
+          <br>These may be newer roads, local roads, or naming differences.
+        </div>
+        <table id="osm-only-table">
+          <thead>
+            <tr>
+              <th>Road Name</th>
+              <th>OSM Speeds</th>
+              <th>Highway Type</th>
+              <th>Segments</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      
+      <div id="mrwa-only" class="section">
+        <div class="info-box">
+          <strong>Roads found in MRWA but not in OSM data.</strong>
+          <br>These roads may not have speed limit tags in OpenStreetMap.
+        </div>
+        <table id="mrwa-only-table">
+          <thead>
+            <tr>
+              <th>Road Name</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let allData = null;
+    
+    async function loadData() {
+      try {
+        const response = await fetch('/api/speed-compare?action=compare');
+        allData = await response.json();
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+        renderData();
+      } catch (error) {
+        document.getElementById('loading').textContent = 'Error loading data: ' + error.message;
+      }
+    }
+    
+    function renderSpeedBadges(speeds, type) {
+      return speeds.map(s => `<span class="speed-badge speed-${type}">${s} km/h</span>`).join('');
+    }
+    
+    function renderStats() {
+      const s = allData.summary;
+      document.getElementById('stats-grid').innerHTML = `
+        <div class="stat-card">
+          <div class="value">${s.mrwa_total.toLocaleString()}</div>
+          <div class="label">MRWA Total Segments</div>
+        </div>
+        <div class="stat-card">
+          <div class="value">${s.osm_total.toLocaleString()}</div>
+          <div class="label">OSM Total Segments</div>
+        </div>
+        <div class="stat-card match">
+          <div class="value">${s.matched_roads.toLocaleString()}</div>
+          <div class="label">Matched Roads</div>
+        </div>
+        <div class="stat-card match">
+          <div class="value">${s.exact_matches.toLocaleString()}</div>
+          <div class="label">Exact Speed Matches</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="value">${s.discrepancies.toLocaleString()}</div>
+          <div class="label">Discrepancies</div>
+        </div>
+        <div class="stat-card error">
+          <div class="value">${s.mrwa_only.toLocaleString()}</div>
+          <div class="label">MRWA Only</div>
+        </div>
+        <div class="stat-card">
+          <div class="value">${s.osm_only.toLocaleString()}</div>
+          <div class="label">OSM Only</div>
+        </div>
+      `;
+      
+      document.getElementById('discrepancy-count').textContent = s.discrepancies;
+      document.getElementById('high-count').textContent = 
+        allData.discrepancies.filter(d => d.severity === 'high').length;
+    }
+    
+    function renderDiscrepancies(filter = '') {
+      const tbody = document.querySelector('#discrepancies-table tbody');
+      let items = allData.discrepancies;
+      
+      if (filter) {
+        items = items.filter(d => d.road_name.toLowerCase().includes(filter.toLowerCase()));
+      }
+      
+      tbody.innerHTML = items.slice(0, 200).map(d => `
+        <tr>
+          <td><strong>${d.road_name}</strong></td>
+          <td>${renderSpeedBadges(d.mrwa_speeds, 'mrwa')}</td>
+          <td>${renderSpeedBadges(d.osm_speeds, 'osm')}</td>
+          <td class="severity-${d.severity}">${d.severity.toUpperCase()}</td>
+          <td>MRWA: ${d.mrwa_segments} | OSM: ${d.osm_segments}</td>
+        </tr>
+      `).join('');
+    }
+    
+    function renderHighSeverity(filter = '') {
+      const tbody = document.querySelector('#high-table tbody');
+      let items = allData.discrepancies.filter(d => d.severity === 'high');
+      
+      if (filter) {
+        items = items.filter(d => d.road_name.toLowerCase().includes(filter.toLowerCase()));
+      }
+      
+      tbody.innerHTML = items.slice(0, 200).map(d => `
+        <tr>
+          <td><strong>${d.road_name}</strong></td>
+          <td>${renderSpeedBadges(d.mrwa_speeds, 'mrwa')}</td>
+          <td>${renderSpeedBadges(d.osm_speeds, 'osm')}</td>
+          <td>
+            ${d.mrwa_speeds[0] !== d.osm_speeds[0] ? 
+              `<span class="speed-badge speed-diff">${Math.abs(d.mrwa_speeds[0] - d.osm_speeds[0])} km/h diff</span>` : 
+              'Multiple speeds'}
+          </td>
+        </tr>
+      `).join('');
+    }
+    
+    function renderMatches(filter = '') {
+      const tbody = document.querySelector('#matches-table tbody');
+      let items = allData.matches;
+      
+      if (filter) {
+        items = items.filter(m => m.road_name.toLowerCase().includes(filter.toLowerCase()));
+      }
+      
+      tbody.innerHTML = items.slice(0, 200).map(m => `
+        <tr>
+          <td><strong>${m.road_name}</strong></td>
+          <td>${renderSpeedBadges(m.mrwa_speeds, 'match')}</td>
+          <td>✅ Verified</td>
+        </tr>
+      `).join('');
+    }
+    
+    function renderOsmOnly(filter = '') {
+      const tbody = document.querySelector('#osm-only-table tbody');
+      let items = allData.osm_only_roads;
+      
+      if (filter) {
+        items = items.filter(n => n.toLowerCase().includes(filter.toLowerCase()));
+      }
+      
+      tbody.innerHTML = items.slice(0, 200).map(name => `
+        <tr>
+          <td>${name}</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+      `).join('');
+    }
+    
+    function renderMrwaOnly(filter = '') {
+      const tbody = document.querySelector('#mrwa-only-table tbody');
+      let items = allData.mrwa_only_roads;
+      
+      if (filter) {
+        items = items.filter(n => n.toLowerCase().includes(filter.toLowerCase()));
+      }
+      
+      tbody.innerHTML = items.slice(0, 200).map(name => `
+        <tr>
+          <td>${name}</td>
+        </tr>
+      `).join('');
+    }
+    
+    function renderData() {
+      renderStats();
+      renderDiscrepancies();
+      renderHighSeverity();
+      renderMatches();
+      renderOsmOnly();
+      renderMrwaOnly();
+    }
+    
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+    
+    // Search
+    document.getElementById('search').addEventListener('input', (e) => {
+      const filter = e.target.value;
+      renderDiscrepancies(filter);
+      renderHighSeverity(filter);
+      renderMatches(filter);
+      renderOsmOnly(filter);
+      renderMrwaOnly(filter);
+    });
+    
+    // Load on start
+    loadData();
+  </script>
+</body>
+</html>
