@@ -75,7 +75,7 @@ interface SpeedSignsFile {
 let cachedSigns: SpeedSignOverride[] | null = null;
 
 /**
- * Load speed sign overrides from the JSON file
+ * Load speed sign overrides from the API (which reads from file)
  */
 export async function loadSpeedSignOverrides(): Promise<SpeedSignOverride[]> {
   if (cachedSigns) {
@@ -83,11 +83,18 @@ export async function loadSpeedSignOverrides(): Promise<SpeedSignOverride[]> {
   }
 
   try {
-    // Add cache-busting query param to ensure fresh data
-    const response = await fetch(`/data/speed-overrides.json?t=${Date.now()}`);
+    // Fetch from API to get the most recent data
+    const response = await fetch('/api/overrides');
     if (!response.ok) {
-      console.warn('Speed overrides file not found, using empty overrides');
-      return [];
+      console.warn('Speed overrides API not available, trying static file');
+      // Fallback to static file
+      const staticResponse = await fetch(`/data/speed-overrides.json?t=${Date.now()}`);
+      if (!staticResponse.ok) {
+        return [];
+      }
+      const data = await staticResponse.json();
+      cachedSigns = data.signs || [];
+      return cachedSigns;
     }
 
     const data: SpeedSignsFile = await response.json();
@@ -129,14 +136,26 @@ export async function getSpeedOverridesMetadata(): Promise<{
   roads_affected: string[];
 }> {
   try {
-    // Add cache-busting query param to ensure fresh data
-    const response = await fetch(`/data/speed-overrides.json?t=${Date.now()}`);
+    // Fetch from API first
+    const response = await fetch('/api/overrides');
     if (!response.ok) {
-      return { version: '0', last_updated: '', total_overrides: 0, roads_affected: [] };
+      // Fallback to static file
+      const staticResponse = await fetch(`/data/speed-overrides.json?t=${Date.now()}`);
+      if (!staticResponse.ok) {
+        return { version: '0', last_updated: '', total_overrides: 0, roads_affected: [] };
+      }
+      const data = await staticResponse.json();
+      const roads = [...new Set(data.signs?.map((s: SpeedSignOverride) => s.road_id) || [])];
+      return {
+        version: data.version || '0',
+        last_updated: data.last_updated || '',
+        total_overrides: data.signs?.length || 0,
+        roads_affected: roads
+      };
     }
 
-    const data: SpeedSignsFile = await response.json();
-    const roads = [...new Set(data.signs?.map(s => s.road_id) || [])];
+    const data = await response.json();
+    const roads = [...new Set(data.signs?.map((s: SpeedSignOverride) => s.road_id) || [])];
 
     return {
       version: data.version || '0',
