@@ -4,12 +4,13 @@ A mobile-friendly web application for Traffic Controller (TC) work zone planning
 
 ## Features
 
-### 🔧 Speed Zone Overrides (RC 1.0.3+)
+### 🔧 Speed Zone Overrides (RC 1.2.0+)
 - **Community-verified corrections** for MRWA speed zone data
 - **Override management page** at `/overrides`
 - **MRWA Exception Report generator** for reporting discrepancies
 - GPS-verified sign locations with ±4m accuracy
-- Automatic precedence over MRWA database when verified
+- **LocalStorage persistence** - data saved on your device
+- **Export/Import** - backup and restore your override data
 
 ### 📍 Work Zone Location Lookup
 - Search roads by region and road ID
@@ -216,7 +217,18 @@ src/
 
 ## Version History
 
-### RC 1.0.4 (Current) - Sign-Based Override System
+### RC 1.2.0 (Current) - Local Storage Overrides
+- **MAJOR: LocalStorage-based storage** - Data now persists on your device
+  - Works on all hosting platforms (Vercel, Netlify, local)
+  - No server-side file writes needed
+  - Data persists between browser sessions
+- **Export functionality** - Download your override data as JSON
+- **Improved reliability** - No more "failed to write" errors
+- **Faster operations** - All CRUD operations are instant (no network calls)
+- **Updated UI** with storage mode indicator
+- **Better error messages** for all operations
+
+### RC 1.0.4 - Sign-Based Override System
 - **NEW: Sign-Based Override System** - Captures physical sign details:
   - Sign type (Single or Double sided)
   - Replicated status (matching sign on opposite side)
