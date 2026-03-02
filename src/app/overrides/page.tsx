@@ -413,7 +413,7 @@ export default function OverridesPage() {
     try {
       await navigator.clipboard.writeText(exportContent);
       showMessage('success', 'Copied to clipboard!');
-    } catch (error) {
+    } catch {
       // Fallback - select the text
       const textarea = document.getElementById('export-textarea') as HTMLTextAreaElement;
       if (textarea) {
@@ -422,6 +422,19 @@ export default function OverridesPage() {
         showMessage('success', 'Copied!');
       }
     }
+  };
+
+  const downloadFile = () => {
+    const blob = new Blob([exportContent], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `speed-overrides-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showMessage('success', 'File downloaded!');
   };
 
   const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -747,16 +760,22 @@ This data should be verified against MRWA records before making database updates
       {showExportBox && (
         <div className="bg-gray-800 rounded-lg p-4 mb-6 border border-purple-700">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-purple-400">Export Data - Copy Below</h3>
-            <div className="flex gap-2">
+            <h3 className="text-lg font-semibold text-purple-400">Export Data</h3>
+            <div className="flex flex-wrap gap-2">
               <Button onClick={copyToClipboard} className="bg-green-600 hover:bg-green-700">
-                📋 Copy to Clipboard
+                📋 Copy
+              </Button>
+              <Button onClick={downloadFile} className="bg-blue-600 hover:bg-blue-700">
+                💾 Download File
               </Button>
               <Button onClick={() => setShowExportBox(false)} className="bg-gray-700 hover:bg-gray-600 text-white">
                 ✕ Close
               </Button>
             </div>
           </div>
+          <p className="text-sm text-gray-400 mb-2">
+            Copy the text below or tap Download File (may not work on some mobile browsers)
+          </p>
           <textarea
             id="export-textarea"
             value={exportContent}
