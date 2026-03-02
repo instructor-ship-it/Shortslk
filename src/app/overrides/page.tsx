@@ -198,6 +198,8 @@ export default function OverridesPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showExportBox, setShowExportBox] = useState(false);
+  const [exportContent, setExportContent] = useState('');
 
   // New sign form state
   const [newSign, setNewSign] = useState({
@@ -401,32 +403,24 @@ export default function OverridesPage() {
   };
 
   const exportData = () => {
+    const data = loadFromStorage();
+    const jsonStr = JSON.stringify(data, null, 2);
+    setExportContent(jsonStr);
+    setShowExportBox(true);
+  };
+
+  const copyToClipboard = async () => {
     try {
-      // Test with plain text first
-      const testText = "HELLO THIS IS A TEST FILE\nLine 2\nLine 3\nTimestamp: " + new Date().toISOString();
-      
-      // Method 1: Try data URL approach
-      const dataUrl = 'data:text/plain;charset=utf-8,' + encodeURIComponent(testText);
-      
-      // Try to open in new tab/window - user can then save
-      const newWindow = window.open(dataUrl, '_blank');
-      
-      if (newWindow) {
-        showMessage('success', 'Opened in new tab - save from there');
-      } else {
-        // Popup blocked - try download attribute approach
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = 'test-export.txt';
-        a.target = '_blank';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        showMessage('success', 'Download started');
-      }
+      await navigator.clipboard.writeText(exportContent);
+      showMessage('success', 'Copied to clipboard!');
     } catch (error) {
-      console.error('Export error:', error);
-      showMessage('error', 'Failed: ' + String(error));
+      // Fallback - select the text
+      const textarea = document.getElementById('export-textarea') as HTMLTextAreaElement;
+      if (textarea) {
+        textarea.select();
+        document.execCommand('copy');
+        showMessage('success', 'Copied!');
+      }
     }
   };
 
@@ -748,6 +742,30 @@ This data should be verified against MRWA records before making database updates
           Clear All
         </Button>
       </div>
+
+      {/* Export Box - Copy/Paste */}
+      {showExportBox && (
+        <div className="bg-gray-800 rounded-lg p-4 mb-6 border border-purple-700">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-purple-400">Export Data - Copy Below</h3>
+            <div className="flex gap-2">
+              <Button onClick={copyToClipboard} className="bg-green-600 hover:bg-green-700">
+                📋 Copy to Clipboard
+              </Button>
+              <Button onClick={() => setShowExportBox(false)} className="bg-gray-700 hover:bg-gray-600 text-white">
+                ✕ Close
+              </Button>
+            </div>
+          </div>
+          <textarea
+            id="export-textarea"
+            value={exportContent}
+            readOnly
+            className="w-full h-64 bg-gray-900 border border-gray-600 rounded p-3 text-green-400 font-mono text-xs resize-y"
+            style={{ minHeight: '200px' }}
+          />
+        </div>
+      )}
 
       {/* Add Sign Form */}
       {showAddForm && (
