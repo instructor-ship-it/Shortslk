@@ -4,6 +4,13 @@ A mobile-friendly web application for Traffic Controller (TC) work zone planning
 
 ## Features
 
+### 🔧 Speed Zone Overrides (RC 1.0.3+)
+- **Community-verified corrections** for MRWA speed zone data
+- **Override management page** at `/overrides`
+- **MRWA Exception Report generator** for reporting discrepancies
+- GPS-verified sign locations with ±4m accuracy
+- Automatic precedence over MRWA database when verified
+
 ### 📍 Work Zone Location Lookup
 - Search roads by region and road ID
 - Enter SLK (Start/End) to get work zone coordinates
@@ -142,6 +149,12 @@ The app includes pre-downloaded road data for **69,471 roads** across all 8 MRWA
 - **Other/Unknown**: 2,237 roads
 
 Plus **69,455 speed zones** for accurate speed limit display.
+
+**Speed Zone Overrides** (`/public/data/speed-overrides.json`):
+- Community-verified corrections for MRWA data
+- GPS-verified sign locations
+- Currently includes M031 corrections (2024 road widening updates)
+
 - **Weather**: Open-Meteo API
 - **Traffic**: Main Roads WA Traffic Count Data
 - **Amenities**: Overpass API (OpenStreetMap)
@@ -162,6 +175,7 @@ src/
 ├── app/
 │   ├── page.tsx          # Main work zone lookup page
 │   ├── drive/page.tsx    # SLK tracking page
+│   ├── overrides/page.tsx # Speed zone override management
 │   └── api/              # API routes
 │       ├── roads/        # Road data queries
 │       ├── gps/          # GPS to SLK conversion
@@ -202,7 +216,17 @@ src/
 
 ## Version History
 
-### RC 1.0 (Current) - Release Candidate
+### RC 1.0.3 (Current) - Speed Zone Override System
+- **NEW: Speed Zone Override System** - Community-verified corrections for MRWA data
+  - Override management page at `/overrides`
+  - View all active overrides with MRWA comparison
+  - Generate MRWA Exception Report for submitting discrepancies
+  - GPS-verified sign locations with ±4m accuracy
+- **Override precedence**: Community-verified overrides take priority over MRWA data
+- **M031 corrections added**: 5 zones with verified sign locations after 2024 road widening
+- Discrepancies range from 10m to 280m between MRWA database and physical signs
+
+### RC 1.0 - Release Candidate
 - **Official Release Candidate for production deployment**
 - All UI/UX finalized and documented
 - Complete feature set for Traffic Controller work zone operations
