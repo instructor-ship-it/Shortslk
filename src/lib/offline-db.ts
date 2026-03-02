@@ -146,8 +146,8 @@ export async function getSpeedOverridesMetadata(): Promise<{
       if (!staticResponse.ok) {
         return { version: '0', last_updated: '', total_overrides: 0, roads_affected: [] };
       }
-      const data = await staticResponse.json();
-      const roads = [...new Set(data.signs?.map((s: SpeedSignOverride) => s.road_id) || [])];
+      const data: SpeedSignsFile = await staticResponse.json();
+      const roads: string[] = [...new Set(data.signs?.map(s => s.road_id) || [])];
       return {
         version: data.version || '0',
         last_updated: data.last_updated || '',
@@ -156,8 +156,8 @@ export async function getSpeedOverridesMetadata(): Promise<{
       };
     }
 
-    const data = await response.json();
-    const roads = [...new Set(data.signs?.map((s: SpeedSignOverride) => s.road_id) || [])];
+    const data: SpeedSignsFile = await response.json();
+    const roads: string[] = [...new Set(data.signs?.map(s => s.road_id) || [])];
 
     return {
       version: data.version || '0',
