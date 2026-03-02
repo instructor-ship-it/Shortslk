@@ -1,7 +1,7 @@
 # TC Work Zone Locator - Project Context
 
-> **Last Updated:** 2026-03-01
-> **Current Version:** RC 1.0
+> **Last Updated:** 2026-03-02
+> **Current Version:** RC 1.0.2
 > **GitHub:** https://github.com/instructor-ship-it/roadfinder.git
 > **Branches:** master, main (kept in sync)
 > **Project Directory:** `/home/z/my-project/`
@@ -181,6 +181,27 @@ src/
 ---
 
 ## Recent Changes (v5.x)
+
+### RC 1.0.2 - Bug Fix Release
+- **Fixed road priority causing opposite problem**
+  - Issue: RC 1.0.1 was preferring State Roads even when far away (e.g., 103m)
+  - Fix: Priority now only applies as tiebreaker when distances are within 50m
+  - If State Road is 103m away and Local Road is 20m away → Local Road is selected (correct)
+  - If State Road is 50m away and Local Road is 45m away → State Road is selected (correct)
+- **Added automatic data clearing before download**
+  - IndexedDB is now cleared before downloading new data
+  - Prevents corruption from partial/incomplete previous downloads
+- Root cause of original issue was corrupt IndexedDB data, not priority logic
+
+### RC 1.0.1 - Bug Fix Release
+- **Fixed GPS tracking prioritizing Local Roads over State Roads**
+  - Issue: GPS tracking was incorrectly matching nearby Local Roads instead of State Roads (M-roads, H-roads)
+  - Root cause: `findRoadNearGps()` simply returned the closest road without considering road importance
+  - Fix: Added `getRoadTypePriority()` function to prioritize State Roads over Local Roads
+  - Priority order: State Roads (1) > Regional Roads (2) > Local Roads (3) > Miscellaneous (4)
+  - Example: M031 at SLK 64.64 is now correctly matched instead of nearby Seabrook St
+- Added `worklog.md` for tracking development history
+- Updated documentation with road priority system details
 
 ### RC 1.0 - Release Candidate
 - **Official Release Candidate for production deployment**

@@ -1,7 +1,64 @@
 # TC Work Zone Locator - Work Log
 
 > **Last Updated:** 2026-03-02
-> **Current Version:** RC 1.0
+> **Current Version:** RC 1.0.2
+
+---
+
+## Task ID: 2026-03-02-003
+**Agent:** Main Agent
+**Task:** Fix road priority causing opposite problem - State Road shown when on Local Road
+
+### Problem Discovered:
+- User was on a local road (103m from M031 State Road)
+- App showed M031 (State Road) instead of the local road they were actually on
+- RC 1.0.1 priority fix was too aggressive - always preferred State Roads regardless of distance
+
+### Root Cause Analysis:
+- Original issue (M031 not detected) was caused by **corrupt IndexedDB data**, not priority logic
+- When user cleared and re-downloaded data, M031 was correctly detected at 92m
+- The priority fix (RC 1.0.1) then caused the opposite problem
+
+### Work Log:
+- Modified `findRoadNearGps()` sorting logic
+- Changed from "priority first, then distance" to "distance first, priority as 50m tiebreaker"
+- Added automatic IndexedDB clearing before downloading new data in `handleDownloadOfflineData()`
+- Updated version to RC 1.0.2
+
+### Sorting Logic Now:
+```
+if (distance difference <= 50m AND priorities differ):
+    use priority to break tie
+else:
+    use distance (closer wins)
+```
+
+### Examples:
+| State Road Distance | Local Road Distance | Selected |
+|---------------------|---------------------|----------|
+| 103m | 20m | Local Road ✓ |
+| 50m | 45m | State Road ✓ (within 50m threshold) |
+| 92m | 200m | State Road ✓ (much closer) |
+
+### Stage Summary:
+- Version: RC 1.0.2
+- Files changed: `src/lib/offline-db.ts`, `src/app/page.tsx`, `src/app/drive/page.tsx`
+- Commit: `06a35ed` - Pushed to both `main` and `master` branches
+
+---
+
+## Task ID: 2026-03-02-002
+**Agent:** Main Agent
+**Task:** Version bump to RC 1.0.1 after bug fix
+
+### Work Log:
+- Updated version number from RC 1.0 to RC 1.0.1 in page.tsx and drive/page.tsx
+- Updated PROJECT_CONTEXT.md with RC 1.0.1 changelog entry
+- Updated worklog.md with version information
+
+### Stage Summary:
+- Version: RC 1.0.1
+- Commit: Pending push
 
 ---
 
@@ -148,13 +205,13 @@
 
 ## Session Summary
 
-### Recent Commits (RC 1.0):
-1. `ca0e7d1` - Prioritize State Roads over Local Roads in GPS tracking
-2. `b5f559f` - Add comprehensive Glossary of Terms
-3. `aeb49e1` - Update documentation with new corrections UI
-4. `de0a23d` - Simplify signage corridor display with neutral colors
-5. `c7b8bb2` - Improve speed zone corrections UI with True Right/Left labels
-6. `9caa9d6` - Add direction-aware speed zones with manual corrections
+### Recent Commits:
+1. `06a35ed` - RC 1.0.2: Fix road priority - use as tiebreaker only within 50m, auto-clear IndexedDB
+2. `c20515a` - RC 1.0.1: Version bump, update docs with road priority fix details
+3. `03100bb` - RC 1.0: Add worklog.md, update documentation
+4. `ca0e7d1` - RC 1.0: Prioritize State Roads over Local Roads in GPS tracking
+5. `b5f559f` - RC 1.0: Add comprehensive Glossary of Terms
+6. `aeb49e1` - RC 1.0: Update documentation with new corrections UI
 
 ### Documentation Files:
 | File | Description |
