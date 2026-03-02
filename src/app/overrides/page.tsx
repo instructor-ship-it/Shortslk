@@ -402,37 +402,31 @@ export default function OverridesPage() {
 
   const exportData = () => {
     try {
-      // Simple test content first
-      const testData = {
-        message: "TEST EXPORT - This confirms download works",
-        timestamp: new Date().toISOString(),
-        testArray: [1, 2, 3, "four", "five"]
-      };
+      // Test with plain text first
+      const testText = "HELLO THIS IS A TEST FILE\nLine 2\nLine 3\nTimestamp: " + new Date().toISOString();
       
-      const jsonString = JSON.stringify(testData, null, 2);
-      console.log('Export data:', jsonString);
+      // Method 1: Try data URL approach
+      const dataUrl = 'data:text/plain;charset=utf-8,' + encodeURIComponent(testText);
       
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
+      // Try to open in new tab/window - user can then save
+      const newWindow = window.open(dataUrl, '_blank');
       
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `test-export-${Date.now()}.json`;
-      
-      document.body.appendChild(a);
-      a.click();
-      
-      // Cleanup after a short delay
-      setTimeout(() => {
+      if (newWindow) {
+        showMessage('success', 'Opened in new tab - save from there');
+      } else {
+        // Popup blocked - try download attribute approach
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'test-export.txt';
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
-      
-      showMessage('success', 'Test file downloaded - check your Downloads folder');
+        showMessage('success', 'Download started');
+      }
     } catch (error) {
       console.error('Export error:', error);
-      showMessage('error', 'Failed to export data: ' + String(error));
+      showMessage('error', 'Failed: ' + String(error));
     }
   };
 
