@@ -9,54 +9,74 @@ const DB_NAME = 'RoadFinderDB';
 const DB_VERSION = 3; // Incremented for dataset metadata store
 
 // ============================================================================
-// Speed Zone Overrides (Community-Verified Corrections)
+// Speed Sign Overrides (Community-Verified Corrections)
 // ============================================================================
 
 /**
- * Speed zone override for cases where MRWA data is incorrect or outdated.
- * These are field-verified corrections that take precedence over MRWA data.
+ * Speed sign override based on physical signage.
+ * 
+ * Sign Types:
+ * - Single + Not Replicated: Repeater sign (informational only, no zone created)
+ * - Single + Replicated: Direction-specific zone (different speeds each direction)
+ * - Double + Replicated: Same speed both directions (Single carriageway zone)
+ * 
+ * Direction:
+ * - "True Right": Sign faces traffic travelling in direction of INCREASING SLK
+ * - "True Left": Sign faces traffic travelling in direction of DECREASING SLK
  */
-export interface SpeedZoneOverride {
+export interface SpeedSignOverride {
   id: string;
   road_id: string;
   road_name: string;
   common_usage_name?: string;
-  zone_type: string;
-  carriageway: string;
+  
+  // Sign location
+  slk: number;
+  lat?: number;
+  lon?: number;
+  
+  // Sign configuration
+  direction: 'True Left' | 'True Right';
+  sign_type: 'Single' | 'Double';
+  replicated: boolean;  // Is there a matching sign on the other side of road?
+  
+  // Zone definition (only if replicated)
   start_slk: number;
-  end_slk: number;
-  speed_limit: number;
-  sign_location?: {
-    slk: number;
-    lat: number;
-    lon: number;
-    description?: string;
-  } | null;
-  mrwa_slk?: number;          // Original MRWA SLK if different
-  discrepancy_m?: number;      // Distance in meters from MRWA data
-  note?: string;
+  end_slk?: number;
+  
+  // Speeds
+  approach_speed?: number;  // Speed BEFORE this sign in selected direction
+  front_speed: number;      // Speed shown on front face (selected direction)
+  back_speed?: number;      // Speed on back face (opposite direction) - only for Double
+  
+  // Verification
   verified_by?: string;
   verified_date?: string;
-  source: 'default' | 'community_verified' | 'mrwa_corrected';
+  note?: string;
+  source: 'community_verified' | 'mrwa_corrected';
+  
+  // MRWA comparison
+  mrwa_slk?: number;
+  discrepancy_m?: number;
 }
 
-interface SpeedOverridesFile {
+interface SpeedSignsFile {
   version: string;
   last_updated: string;
   description: string;
   disclaimer: string;
-  overrides: SpeedZoneOverride[];
+  signs: SpeedSignOverride[];
 }
 
-// Cached overrides
-let cachedOverrides: SpeedZoneOverride[] | null = null;
+// Cached signs
+let cachedSigns: SpeedSignOverride[] | null = null;
 
 /**
- * Load speed zone overrides from the JSON file
+ * Load speed sign overrides from the JSON file
  */
-export async function loadSpeedOverrides(): Promise<SpeedZoneOverride[]> {
-  if (cachedOverrides) {
-    return cachedOverrides;
+export async function loadSpeedSignOverrides(): Promise<SpeedSignOverride[]> {
+  if (cachedSigns) {
+    return cachedSigns;
   }
 
   try {
@@ -66,9 +86,9 @@ export async function loadSpeedOverrides(): Promise<SpeedZoneOverride[]> {
       return [];
     }
 
-    const data: SpeedOverridesFile = await response.json();
-    cachedOverrides = data.overrides || [];
-    return cachedOverrides;
+    const data: SpeedSignsFile = await response.json();
+    cachedSigns = data.signs || [];
+    return cachedSigns;
   } catch (error) {
     console.error('Failed to load speed overrides:', error);
     return [];
@@ -76,23 +96,23 @@ export async function loadSpeedOverrides(): Promise<SpeedZoneOverride[]> {
 }
 
 /**
- * Get speed zone overrides for a specific road
- * Pass empty string or null to get ALL overrides
+ * Get speed sign overrides for a specific road
+ * Pass empty string or null to get ALL signs
  */
-export async function getSpeedOverrides(roadId: string): Promise<SpeedZoneOverride[]> {
-  const overrides = await loadSpeedOverrides();
-  // If roadId is empty or null, return all overrides
+export async function getSpeedSignOverrides(roadId: string): Promise<SpeedSignOverride[]> {
+  const signs = await loadSpeedSignOverrides();
+  // If roadId is empty or null, return all signs
   if (!roadId || roadId === '') {
-    return overrides;
+    return signs;
   }
-  return overrides.filter(o => o.road_id === roadId);
+  return signs.filter(s => s.road_id === roadId);
 }
 
 /**
- * Clear the cached overrides (call when overrides are updated)
+ * Clear the cached signs (call when signs are updated)
  */
 export function clearSpeedOverridesCache(): void {
-  cachedOverrides = null;
+  cachedSigns = null;
 }
 
 /**
@@ -110,19 +130,87 @@ export async function getSpeedOverridesMetadata(): Promise<{
       return { version: '0', last_updated: '', total_overrides: 0, roads_affected: [] };
     }
 
-    const data: SpeedOverridesFile = await response.json();
-    const roads = [...new Set(data.overrides.map(o => o.road_id))];
+    const data: SpeedSignsFile = await response.json();
+    const roads = [...new Set(data.signs?.map(s => s.road_id) || [])];
 
     return {
       version: data.version || '0',
       last_updated: data.last_updated || '',
-      total_overrides: data.overrides?.length || 0,
+      total_overrides: data.signs?.length || 0,
       roads_affected: roads
     };
   } catch {
     return { version: '0', last_updated: '', total_overrides: 0, roads_affected: [] };
   }
 }
+
+/**
+ * Convert speed signs to parsed speed zones for use in the app.
+ * 
+ * Logic:
+ * - Single + Not Replicated: No zone created (repeater sign only)
+ * - Single + Replicated: Direction-specific zone
+ * - Double + Replicated: Single carriageway zone (same speed both directions)
+ */
+export function signsToSpeedZones(signs: SpeedSignOverride[]): ParsedSpeedZone[] {
+  const zones: ParsedSpeedZone[] = [];
+  
+  for (const sign of signs) {
+    // Skip non-replicated single signs (repeaters don't define zones)
+    if (sign.sign_type === 'Single' && !sign.replicated) {
+      continue;
+    }
+    
+    // Must have end_slk if replicated
+    if (sign.replicated && !sign.end_slk) {
+      console.warn(`Sign ${sign.id} is replicated but has no end_slk`);
+      continue;
+    }
+    
+    if (sign.sign_type === 'Double' && sign.replicated) {
+      // Double + Replicated = Same speed both directions (Single carriageway)
+      zones.push({
+        road_id: sign.road_id,
+        road_name: sign.road_name,
+        start_slk: sign.start_slk,
+        end_slk: sign.end_slk!,
+        speed_limit: sign.front_speed,
+        carriageway: 'Single',
+        is_override: true,
+        override_id: sign.id,
+        override_note: sign.note,
+        override_source: sign.source
+      });
+    } else if (sign.sign_type === 'Single' && sign.replicated) {
+      // Single + Replicated = Direction-specific zone
+      // The sign faces one direction, so we create a zone for that direction
+      // Note: For full bidirectional support, need another sign entry for opposite direction
+      const carriageway = sign.direction === 'True Right' ? 'Right' : 'Left';
+      zones.push({
+        road_id: sign.road_id,
+        road_name: sign.road_name,
+        start_slk: sign.start_slk,
+        end_slk: sign.end_slk!,
+        speed_limit: sign.front_speed,
+        carriageway: carriageway,
+        is_override: true,
+        override_id: sign.id,
+        override_note: sign.note,
+        override_source: sign.source
+      });
+    }
+  }
+  
+  // Sort by start_slk
+  zones.sort((a, b) => a.start_slk - b.start_slk);
+  
+  return zones;
+}
+
+// Legacy compatibility alias
+export type SpeedZoneOverride = SpeedSignOverride;
+export const getSpeedOverrides = getSpeedSignOverrides;
+export const loadSpeedOverrides = loadSpeedSignOverrides;
 
 interface RoadData {
   road_id: string;
@@ -374,17 +462,17 @@ function parseSpeedLimit(speedLimit: number | string): number {
 }
 
 /**
- * Get speed zones for a road, with overrides applied
+ * Get speed zones for a road, with sign-based overrides applied
  * 
  * Priority:
- * 1. Community-verified overrides (source = 'community_verified')
+ * 1. Community-verified signs converted to zones
  * 2. MRWA data from IndexedDB
- * 3. Default zones from overrides
  */
 export async function getSpeedZones(roadId: string): Promise<ParsedSpeedZone[]> {
   try {
-    // First, get overrides for this road
-    const overrides = await getSpeedOverrides(roadId);
+    // First, get sign overrides for this road and convert to zones
+    const signs = await getSpeedSignOverrides(roadId);
+    const overrideZones = signsToSpeedZones(signs);
     
     // Get MRWA data from IndexedDB
     const db = await initDB();
@@ -411,48 +499,26 @@ export async function getSpeedZones(roadId: string): Promise<ParsedSpeedZone[]> 
     });
 
     // If no overrides, just return MRWA data
-    if (overrides.length === 0) {
+    if (overrideZones.length === 0) {
       return mrwaZones;
     }
 
-    // Convert overrides to ParsedSpeedZone format
-    const overrideZones: ParsedSpeedZone[] = overrides.map(o => ({
-      road_id: o.road_id,
-      road_name: o.road_name,
-      start_slk: o.start_slk,
-      end_slk: o.end_slk,
-      speed_limit: o.speed_limit,
-      carriageway: o.carriageway,
-      is_override: true,
-      override_id: o.id,
-      override_note: o.note,
-      override_source: o.source
-    }));
-
-    // Merge: Remove MRWA zones that overlap with community-verified overrides
-    const communityOverrides = overrideZones.filter(z => 
-      overrides.find(o => o.id === z.override_id && o.source === 'community_verified')
-    );
-    
     // Filter out MRWA zones that are completely covered by community overrides
     const filteredMrwaZones = mrwaZones.filter(mrwa => {
-      // Check if this MRWA zone is completely covered by any community override
-      for (const override of communityOverrides) {
+      for (const override of overrideZones) {
         // If override completely contains the MRWA zone, don't include MRWA zone
         if (override.start_slk <= mrwa.start_slk && override.end_slk >= mrwa.end_slk) {
           return false;
         }
-        // If MRWA zone starts within an override, adjust its end
+        // If MRWA zone starts within an override, skip it
         if (mrwa.start_slk >= override.start_slk && mrwa.start_slk < override.end_slk) {
-          // Zone starts in override area - this shouldn't happen with proper data
-          // but we'll skip this zone to be safe
           return false;
         }
       }
       return true;
     });
 
-    // Combine filtered MRWA zones with all override zones
+    // Combine filtered MRWA zones with override zones
     const combinedZones = [...filteredMrwaZones, ...overrideZones];
     
     // Sort by start_slk

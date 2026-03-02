@@ -1,7 +1,79 @@
 # TC Work Zone Locator - Work Log
 
 > **Last Updated:** 2026-03-02
-> **Current Version:** RC 1.0.3
+> **Current Version:** RC 1.0.4
+
+---
+
+## Task ID: 2026-03-02-007
+**Agent:** Main Agent
+**Task:** Redesign Speed Sign Override System with Direction-Aware Sign Input
+
+### Problem:
+- Previous override system didn't capture sign direction awareness
+- Needed to distinguish between Single/Double sided signs
+- Needed to track if signs are replicated on opposite side of road
+- Zone generation logic was incorrect for bidirectional roads
+
+### New Sign-Based Override System:
+Signs are now captured with full directional and configuration details:
+
+| Field | Purpose |
+|-------|---------|
+| direction | True Left or True Right (which direction the sign faces) |
+| sign_type | Single or Double sided |
+| replicated | Is there a matching sign on the opposite side? |
+| start_slk | Where the zone starts |
+| end_slk | Where the zone ends (only if replicated) |
+| approach_speed | Speed before reaching this sign |
+| front_speed | Speed shown on front face (selected direction) |
+| back_speed | Speed on back face (opposite direction, double only) |
+
+### Zone Generation Logic:
+| Sign Type | Replicated? | Zone Created |
+|-----------|-------------|--------------|
+| Single | No | None (repeater sign only) |
+| Single | Yes | Direction-specific zone |
+| Double | Yes | Same speed both directions (Single carriageway) |
+
+### Work Log:
+- Redesigned `SpeedSignOverride` interface with new fields
+- Created `signsToSpeedZones()` function to convert signs to zones
+- Updated `speed-overrides.json` to v2.0 format with `signs` array
+- Rebuilt override UI with new input form
+- Added delete confirmation for existing signs
+- Updated version to RC 1.0.4
+
+### Files Changed:
+- `public/data/speed-overrides.json` (v2.0 - new format)
+- `src/lib/offline-db.ts` (new SpeedSignOverride interface, signsToSpeedZones function)
+- `src/app/overrides/page.tsx` (complete UI redesign)
+- `src/app/page.tsx` (version update)
+
+### Data Structure (v2.0):
+```json
+{
+  "id": "M031-S001",
+  "road_id": "M031",
+  "slk": 64.81,
+  "direction": "True Right",
+  "sign_type": "Double",
+  "replicated": true,
+  "start_slk": 64.81,
+  "end_slk": 65.98,
+  "approach_speed": 110,
+  "front_speed": 80,
+  "back_speed": 110,
+  "source": "community_verified"
+}
+```
+
+### Stage Summary:
+- Version: RC 1.0.4
+- Sign-based override system captures full directional info
+- Zone generation now correct for Single carriageway roads
+- UI shows sign configuration clearly
+- Pending push to GitHub
 
 ---
 

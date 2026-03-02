@@ -216,7 +216,20 @@ src/
 
 ## Version History
 
-### RC 1.0.3 (Current) - Speed Zone Override System
+### RC 1.0.4 (Current) - Sign-Based Override System
+- **NEW: Sign-Based Override System** - Captures physical sign details:
+  - Sign type (Single or Double sided)
+  - Replicated status (matching sign on opposite side)
+  - Direction (True Left / True Right)
+  - Approach speed, Front speed, Back speed
+- **Improved zone generation logic**:
+  - Single + Not Replicated = Repeater (no zone)
+  - Single + Replicated = Direction-specific zone
+  - Double + Replicated = Same speed both directions (Single carriageway)
+- **New override UI** with full sign configuration form
+- **Delete functionality** for existing overrides
+
+### RC 1.0.3 - Speed Zone Override System
 - **NEW: Speed Zone Override System** - Community-verified corrections for MRWA data
   - Override management page at `/overrides`
   - View all active overrides with MRWA comparison
