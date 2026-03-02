@@ -468,25 +468,39 @@ export default function OverridesPage() {
   const shareFile = async () => {
     if (!exportContent) return;
     
-    const blob = new Blob([exportContent], { type: 'application/json' });
-    const file = new File([blob], `speed-overrides-${new Date().toISOString().split('T')[0]}.json`, { type: 'application/json' });
-    
-    // Check if Web Share API is available
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    // Check if Web Share API is available (try text only first)
+    if (navigator.share) {
       try {
+        // Try sharing as text first (more widely supported)
         await navigator.share({
-          files: [file],
-          title: 'Speed Sign Overrides',
-          text: 'Exported speed sign data'
+          title: 'Speed Sign Overrides Data',
+          text: exportContent
         });
-        showMessage('success', 'Shared successfully');
+        showMessage('success', 'Shared! Paste into a notes app to save.');
       } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          showMessage('error', 'Share failed');
+        const error = err as Error;
+        if (error.name !== 'AbortError') {
+          // Text share failed, try file share
+          try {
+            const blob = new Blob([exportContent], { type: 'application/json' });
+            const file = new File([blob], `speed-overrides-${new Date().toISOString().split('T')[0]}.json`, { type: 'application/json' });
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: 'Speed Sign Overrides'
+              });
+              showMessage('success', 'File shared successfully');
+            } else {
+              showMessage('error', 'File share not supported - use Copy');
+            }
+          } catch {
+            showMessage('error', 'Share failed - use Copy instead');
+          }
         }
       }
     } else {
-      showMessage('error', 'Share not supported - use Copy instead');
+      showMessage('error', 'Share not supported - use Copy');
     }
   };
 
@@ -829,9 +843,11 @@ This data should be verified against MRWA records before making database updates
               </Button>
             </div>
           </div>
-          <p className="text-sm text-gray-400 mb-2">
-            📱 Mobile: Use <strong>Copy</strong> or <strong>Share</strong> (Share lets you save to Files app)
-          </p>
+          <div className="bg-green-900/30 border border-green-700 rounded p-2 mb-2">
+            <p className="text-sm text-green-300">
+              ✅ <strong>Copy</strong> is the most reliable on mobile. Copy the text below, then paste into a notes app or email to yourself.
+            </p>
+          </div>
           {/* Debug info */}
           <div className="bg-gray-900 p-2 rounded mb-2 text-xs">
             <span className="text-gray-400">Content size: </span>
