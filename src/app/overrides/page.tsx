@@ -24,6 +24,8 @@ export default function OverridesPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingSign, setEditingSign] = useState<SpeedSignOverride | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // New sign form state
   const [newSign, setNewSign] = useState({
@@ -86,124 +88,170 @@ export default function OverridesPage() {
 
   const deselectAll = () => setSelectedIds(new Set());
 
-  const handleDeleteSign = async (id: string) => {
-    // For now, show instructions since we can't write to JSON directly from client
-    alert(`To delete sign ${id}, edit /public/data/speed-overrides.json and remove the sign entry with that ID.`);
-    setDeleteConfirm(null);
+  // Show message for 3 seconds
+  const showMessage = (type: 'success' | 'error', text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 3000);
   };
 
-  const handleEditSign = () => {
+  const handleDeleteSign = async (id: string) => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/overrides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', sign: { id } })
+      });
+      
+      if (!response.ok) throw new Error('Failed to delete');
+      
+      showMessage('success', 'Sign deleted successfully');
+      setDeleteConfirm(null);
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting sign:', error);
+      showMessage('error', 'Failed to delete sign');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditSign = async () => {
     if (!editingSign) return;
     
     // Validate required fields
     if (!editingSign.front_speed) {
-      alert('Front Speed is required');
+      showMessage('error', 'Front Speed is required');
       return;
     }
 
     if (editingSign.replicated && !editingSign.end_slk) {
-      alert('End SLK is required when sign is replicated');
+      showMessage('error', 'End SLK is required when sign is replicated');
       return;
     }
 
     if (editingSign.sign_type === 'Double' && !editingSign.back_speed) {
-      alert('Back Speed is required for double-sided signs');
+      showMessage('error', 'Back Speed is required for double-sided signs');
       return;
     }
 
-    // Generate updated JSON for user to copy
-    const signJson = {
-      id: editingSign.id,
-      road_id: editingSign.road_id,
-      road_name: editingSign.road_name,
-      common_usage_name: editingSign.common_usage_name || undefined,
-      slk: editingSign.slk,
-      lat: editingSign.lat || undefined,
-      lon: editingSign.lon || undefined,
-      direction: editingSign.direction,
-      sign_type: editingSign.sign_type,
-      replicated: editingSign.replicated,
-      start_slk: editingSign.start_slk,
-      end_slk: editingSign.replicated ? editingSign.end_slk : undefined,
-      approach_speed: editingSign.approach_speed || undefined,
-      front_speed: editingSign.front_speed,
-      back_speed: editingSign.sign_type === 'Double' ? editingSign.back_speed : undefined,
-      verified_by: editingSign.verified_by || 'user_input',
-      verified_date: new Date().toISOString().split('T')[0],
-      note: editingSign.note || undefined,
-      source: editingSign.source || 'community_verified'
-    };
+    setSaving(true);
+    try {
+      const signJson = {
+        id: editingSign.id,
+        road_id: editingSign.road_id,
+        road_name: editingSign.road_name,
+        common_usage_name: editingSign.common_usage_name || undefined,
+        slk: editingSign.slk,
+        lat: editingSign.lat || undefined,
+        lon: editingSign.lon || undefined,
+        direction: editingSign.direction,
+        sign_type: editingSign.sign_type,
+        replicated: editingSign.replicated,
+        start_slk: editingSign.start_slk,
+        end_slk: editingSign.replicated ? editingSign.end_slk : undefined,
+        approach_speed: editingSign.approach_speed || undefined,
+        front_speed: editingSign.front_speed,
+        back_speed: editingSign.sign_type === 'Double' ? editingSign.back_speed : undefined,
+        verified_by: editingSign.verified_by || 'user_input',
+        note: editingSign.note || undefined,
+        source: editingSign.source || 'community_verified'
+      };
 
-    // Show JSON for user to copy
-    const jsonStr = JSON.stringify(signJson, null, 2);
-    alert(`Update this sign in /public/data/speed-overrides.json:\n\nFind sign with id: "${editingSign.id}"\nReplace with:\n\n${jsonStr}`);
-    
-    setEditingSign(null);
+      const response = await fetch('/api/overrides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update', sign: signJson })
+      });
+      
+      if (!response.ok) throw new Error('Failed to update');
+      
+      showMessage('success', 'Sign updated successfully');
+      setEditingSign(null);
+      await loadData();
+    } catch (error) {
+      console.error('Error updating sign:', error);
+      showMessage('error', 'Failed to update sign');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAddSign = async () => {
     // Validate required fields
     if (!newSign.road_id || !newSign.slk || !newSign.front_speed) {
-      alert('Please fill in Road ID, SLK, and Front Speed');
+      showMessage('error', 'Please fill in Road ID, SLK, and Front Speed');
       return;
     }
 
     if (newSign.replicated && !newSign.end_slk) {
-      alert('End SLK is required when sign is replicated');
+      showMessage('error', 'End SLK is required when sign is replicated');
       return;
     }
 
     if (newSign.sign_type === 'Double' && !newSign.back_speed) {
-      alert('Back Speed is required for double-sided signs');
+      showMessage('error', 'Back Speed is required for double-sided signs');
       return;
     }
 
-    // Generate JSON for user to copy
-    const signJson = {
-      id: `${newSign.road_id}-S${Date.now().toString().slice(-3)}`,
-      road_id: newSign.road_id,
-      road_name: newSign.road_name || newSign.road_id,
-      common_usage_name: newSign.common_usage_name || undefined,
-      slk: parseFloat(newSign.slk),
-      lat: newSign.lat ? parseFloat(newSign.lat) : undefined,
-      lon: newSign.lon ? parseFloat(newSign.lon) : undefined,
-      direction: newSign.direction,
-      sign_type: newSign.sign_type,
-      replicated: newSign.replicated,
-      start_slk: parseFloat(newSign.slk),
-      end_slk: newSign.replicated && newSign.end_slk ? parseFloat(newSign.end_slk) : undefined,
-      approach_speed: newSign.approach_speed ? parseInt(newSign.approach_speed) : undefined,
-      front_speed: parseInt(newSign.front_speed),
-      back_speed: newSign.sign_type === 'Double' && newSign.back_speed ? parseInt(newSign.back_speed) : undefined,
-      verified_by: 'user_input',
-      verified_date: new Date().toISOString().split('T')[0],
-      note: newSign.note || undefined,
-      source: 'community_verified'
-    };
+    setSaving(true);
+    try {
+      const signJson = {
+        road_id: newSign.road_id,
+        road_name: newSign.road_name || newSign.road_id,
+        common_usage_name: newSign.common_usage_name || undefined,
+        slk: parseFloat(newSign.slk),
+        lat: newSign.lat ? parseFloat(newSign.lat) : undefined,
+        lon: newSign.lon ? parseFloat(newSign.lon) : undefined,
+        direction: newSign.direction,
+        sign_type: newSign.sign_type,
+        replicated: newSign.replicated,
+        start_slk: parseFloat(newSign.slk),
+        end_slk: newSign.replicated && newSign.end_slk ? parseFloat(newSign.end_slk) : undefined,
+        approach_speed: newSign.approach_speed ? parseInt(newSign.approach_speed) : undefined,
+        front_speed: parseInt(newSign.front_speed),
+        back_speed: newSign.sign_type === 'Double' && newSign.back_speed ? parseInt(newSign.back_speed) : undefined,
+        verified_by: 'user_input',
+        note: newSign.note || undefined,
+        source: 'community_verified'
+      };
 
-    // Show JSON for user to copy
-    const jsonStr = JSON.stringify(signJson, null, 2);
-    alert(`Add this to /public/data/speed-overrides.json:\n\n${jsonStr}`);
-    
-    setShowAddForm(false);
-    // Reset form
-    setNewSign({
-      road_id: '',
-      road_name: '',
-      common_usage_name: '',
-      slk: '',
-      lat: '',
-      lon: '',
-      direction: 'True Right',
-      sign_type: 'Double',
-      replicated: true,
-      start_slk: '',
-      end_slk: '',
-      approach_speed: '',
-      front_speed: '',
-      back_speed: '',
-      note: '',
-    });
+      const response = await fetch('/api/overrides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add', sign: signJson })
+      });
+      
+      if (!response.ok) throw new Error('Failed to add');
+      
+      const result = await response.json();
+      showMessage('success', `Sign added successfully (ID: ${result.sign.id})`);
+      setShowAddForm(false);
+      // Reset form
+      setNewSign({
+        road_id: '',
+        road_name: '',
+        common_usage_name: '',
+        slk: '',
+        lat: '',
+        lon: '',
+        direction: 'True Right',
+        sign_type: 'Double',
+        replicated: true,
+        start_slk: '',
+        end_slk: '',
+        approach_speed: '',
+        front_speed: '',
+        back_speed: '',
+        note: '',
+      });
+      await loadData();
+    } catch (error) {
+      console.error('Error adding sign:', error);
+      showMessage('error', 'Failed to add sign');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const generateMrwaExceptionReport = async () => {
@@ -347,6 +395,25 @@ This data should be verified against MRWA records before making database updates
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4">
+      {/* Message Banner */}
+      {message && (
+        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg ${
+          message.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+        } text-white font-medium`}>
+          {message.text}
+        </div>
+      )}
+      
+      {/* Saving Overlay */}
+      {saving && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40">
+          <div className="bg-gray-800 rounded-lg p-6 flex items-center gap-3">
+            <div className="animate-spin w-6 h-6 border-2 border-white border-t-transparent rounded-full"></div>
+            <span>Saving...</span>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
@@ -605,8 +672,8 @@ This data should be verified against MRWA records before making database updates
           )}
 
           <div className="flex gap-3">
-            <Button onClick={handleAddSign} className="bg-green-600 hover:bg-green-700">
-              Generate JSON
+            <Button onClick={handleAddSign} className="bg-green-600 hover:bg-green-700" disabled={saving}>
+              {saving ? 'Saving...' : '💾 Save Sign'}
             </Button>
             <Button
               onClick={() => setShowAddForm(false)}
@@ -790,8 +857,8 @@ This data should be verified against MRWA records before making database updates
             </div>
 
             <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-700">
-              <Button onClick={handleEditSign} className="bg-blue-600 hover:bg-blue-700">
-                Generate Updated JSON
+              <Button onClick={handleEditSign} className="bg-blue-600 hover:bg-blue-700" disabled={saving}>
+                {saving ? 'Saving...' : '💾 Save Changes'}
               </Button>
               <Button
                 onClick={() => setEditingSign(null)}
