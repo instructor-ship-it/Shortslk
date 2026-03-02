@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   getSpeedSignOverrides,
   getSpeedOverridesMetadata,
+  clearSpeedOverridesCache,
   type SpeedSignOverride,
 } from '@/lib/offline-db';
 
@@ -53,6 +54,9 @@ export default function OverridesPage() {
   const loadData = async () => {
     setLoading(true);
     try {
+      // Clear cache first to ensure fresh data
+      clearSpeedOverridesCache();
+      
       const meta = await getSpeedOverridesMetadata();
       setMetadata(meta);
 

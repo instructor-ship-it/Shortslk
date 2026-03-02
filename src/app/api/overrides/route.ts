@@ -6,12 +6,8 @@ import path from 'path';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Use multiple possible paths for writing
-const POSSIBLE_PATHS = [
-  path.join(process.cwd(), 'public', 'data', 'speed-overrides.json'),
-  path.join(process.cwd(), 'data', 'speed-overrides.json'),
-  path.join('/tmp', 'speed-overrides.json'),
-];
+// Single path - must match where frontend reads from
+const OVERRIDES_PATH = path.join(process.cwd(), 'public', 'data', 'speed-overrides.json');
 
 interface SpeedSignOverride {
   id: string;
@@ -43,68 +39,39 @@ interface OverridesData {
   signs: SpeedSignOverride[];
 }
 
-function getWritablePath(): { path: string; writable: boolean; error?: string } {
-  for (const testPath of POSSIBLE_PATHS) {
-    try {
-      // Try to write a test file
-      const testFile = path.join(path.dirname(testPath), '.write-test');
-      fs.mkdirSync(path.dirname(testPath), { recursive: true });
-      fs.writeFileSync(testFile, 'test', 'utf-8');
-      fs.unlinkSync(testFile);
-      return { path: testPath, writable: true };
-    } catch (error) {
-      console.log(`[API] Path not writable: ${testPath}`, error);
-      continue;
-    }
-  }
-  return { path: POSSIBLE_PATHS[0], writable: false, error: 'No writable location found' };
-}
-
 function readOverridesFile(): OverridesData {
-  // Try each path to find an existing file
-  for (const testPath of POSSIBLE_PATHS) {
-    try {
-      if (fs.existsSync(testPath)) {
-        console.log('[API] Reading from:', testPath);
-        const content = fs.readFileSync(testPath, 'utf-8');
-        return JSON.parse(content);
-      }
-    } catch (error) {
-      console.log(`[API] Error reading ${testPath}:`, error);
-    }
+  try {
+    console.log('[API] Reading from:', OVERRIDES_PATH);
+    const content = fs.readFileSync(OVERRIDES_PATH, 'utf-8');
+    return JSON.parse(content);
+  } catch (error) {
+    console.error('[API] Error reading file:', error);
+    // Return default structure if file doesn't exist
+    return {
+      version: '2.0',
+      last_updated: new Date().toISOString().split('T')[0],
+      signs: []
+    };
   }
-  
-  // Return default structure if no file found
-  return {
-    version: '2.0',
-    last_updated: new Date().toISOString().split('T')[0],
-    signs: []
-  };
 }
 
-function writeOverridesFile(data: OverridesData): { success: boolean; error?: string; path?: string } {
-  const { path: writePath, writable, error: writeError } = getWritablePath();
-  
-  if (!writable) {
-    return { success: false, error: writeError };
-  }
-  
+function writeOverridesFile(data: OverridesData): { success: boolean; error?: string } {
   try {
     data.last_updated = new Date().toISOString().split('T')[0];
     
     // Ensure directory exists
-    const dir = path.dirname(writePath);
+    const dir = path.dirname(OVERRIDES_PATH);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
     
-    console.log('[API] Writing to:', writePath);
-    fs.writeFileSync(writePath, JSON.stringify(data, null, 2), 'utf-8');
+    console.log('[API] Writing to:', OVERRIDES_PATH);
+    fs.writeFileSync(OVERRIDES_PATH, JSON.stringify(data, null, 2), 'utf-8');
     console.log('[API] Write successful');
-    return { success: true, path: writePath };
+    return { success: true };
   } catch (error) {
     console.error('[API] Error writing file:', error);
-    return { success: false, error: String(error), path: writePath };
+    return { success: false, error: String(error) };
   }
 }
 
@@ -112,11 +79,7 @@ function writeOverridesFile(data: OverridesData): { success: boolean; error?: st
 export async function GET() {
   try {
     const data = readOverridesFile();
-    const { path: writePath, writable } = getWritablePath();
-    return NextResponse.json({ 
-      ...data, 
-      _meta: { writePath, writable } 
-    });
+    return NextResponse.json(data);
   } catch (error) {
     console.error('[API] GET Error:', error);
     return NextResponse.json({ error: 'Failed to read overrides', details: String(error) }, { status: 500 });
@@ -180,10 +143,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         error: 'Failed to write file', 
         details: writeResult.error,
-        path: writeResult.path,
-        cwd: process.cwd(),
-        uid: process.getuid?.(),
-        gid: process.getgid?.()
+        path: OVERRIDES_PATH 
       }, { status: 500 });
     }
 
@@ -191,14 +151,13 @@ export async function POST(request: NextRequest) {
       success: true,
       sign: sign,
       totalSigns: data.signs.length,
-      path: writeResult.path
+      path: OVERRIDES_PATH
     });
   } catch (error) {
     console.error('[API] POST Error:', error);
     return NextResponse.json({ 
       error: 'Failed to process request', 
-      details: String(error),
-      cwd: process.cwd()
+      details: String(error) 
     }, { status: 500 });
   }
 }

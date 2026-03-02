@@ -83,7 +83,8 @@ export async function loadSpeedSignOverrides(): Promise<SpeedSignOverride[]> {
   }
 
   try {
-    const response = await fetch('/data/speed-overrides.json');
+    // Add cache-busting query param to ensure fresh data
+    const response = await fetch(`/data/speed-overrides.json?t=${Date.now()}`);
     if (!response.ok) {
       console.warn('Speed overrides file not found, using empty overrides');
       return [];
@@ -128,7 +129,8 @@ export async function getSpeedOverridesMetadata(): Promise<{
   roads_affected: string[];
 }> {
   try {
-    const response = await fetch('/data/speed-overrides.json');
+    // Add cache-busting query param to ensure fresh data
+    const response = await fetch(`/data/speed-overrides.json?t=${Date.now()}`);
     if (!response.ok) {
       return { version: '0', last_updated: '', total_overrides: 0, roads_affected: [] };
     }
