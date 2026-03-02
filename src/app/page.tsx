@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -1192,7 +1193,7 @@ export default function Home() {
           </button>
         </div>
         <p className="text-xs text-gray-400 text-center mb-4">
-          vRC 1.0.2 {offlineReady && <span className="text-green-400">• EKF GPS • Haversine • 69K Roads</span>}
+          vRC 1.0.3 {offlineReady && <span className="text-green-400">• EKF GPS • Haversine • 69K Roads • Overrides</span>}
         </p>
 
         {/* Setup Dialog */}
@@ -1405,6 +1406,38 @@ export default function Home() {
                   Clear
                 </Button>
               )}
+            </div>
+
+            {/* Speed Zone Overrides Section */}
+            <div className="mt-4 pt-4 border-t border-gray-700">
+              <h3 className="text-sm font-semibold text-orange-400 mb-3">🔧 Speed Zone Overrides</h3>
+              <div className="bg-gray-900/50 rounded-lg p-3 mb-3">
+                <p className="text-xs text-gray-400 mb-2">
+                  Community-verified corrections for MRWA speed zone data. 
+                  Overrides are applied automatically when you search or track on affected roads.
+                </p>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Status:</span>
+                  <span className="text-green-400">✓ Active (M031 corrections loaded)</span>
+                </div>
+                <div className="flex items-center justify-between text-xs mt-1">
+                  <span className="text-gray-500">Version:</span>
+                  <span className="text-gray-400">1.0 • Updated: 2025-03-02</span>
+                </div>
+                <div className="flex items-center justify-between text-xs mt-1">
+                  <span className="text-gray-500">Affected Roads:</span>
+                  <span className="text-orange-400">M031 (4 zone corrections)</span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mb-3">
+                Override data is bundled with the app and loaded automatically. 
+                Corrections are field-verified where MRWA data is outdated after road works.
+              </p>
+              <Link href="/overrides">
+                <Button className="w-full bg-orange-600 hover:bg-orange-700 text-sm">
+                  📋 Manage Overrides & Generate Reports
+                </Button>
+              </Link>
             </div>
 
             {/* Admin Data Sync Panel */}

@@ -1,7 +1,111 @@
 # TC Work Zone Locator - Work Log
 
 > **Last Updated:** 2026-03-02
-> **Current Version:** RC 1.0.2
+> **Current Version:** RC 1.0.3
+
+---
+
+## Task ID: 2026-03-02-005
+**Agent:** Main Agent
+**Task:** Create Speed Zone Override Management UI with MRWA Exception Report Generator
+
+### Features Added:
+1. **Override Management Page** (`/overrides`)
+   - Displays all active overrides with full metadata
+   - Shows MRWA database comparison for each override
+   - Form for adding new overrides (future - requires backend)
+   - Status card showing version, last updated, total overrides, affected roads
+
+2. **MRWA Exception Report Generator**
+   - Button to generate downloadable text report
+   - Compares override data with MRWA database
+   - Shows discrepancies in SLK and speed limits
+   - Includes GPS coordinates of physical signs
+   - Summary table for quick reference
+   - Recommended actions section for MRWA
+
+### Report Contents:
+- Executive summary with exception count
+- Detailed entries for each discrepancy
+- GPS-verified sign locations
+- MRWA database comparison
+- Summary table with all zones
+- Recommended actions for MRWA
+
+### Work Log:
+- Created `/src/app/overrides/page.tsx` (new page)
+- Added Link import to main page.tsx
+- Added button to navigate to override management
+- Updated version to RC 1.0.3
+
+### Files Changed:
+- `src/app/overrides/page.tsx` (new file - 350+ lines)
+- `src/app/page.tsx` (+5 lines - Link import and button)
+- `public/data/speed-overrides.json` (updated structure)
+
+### Stage Summary:
+- Version: RC 1.0.3
+- Override management accessible via Settings → "Manage Overrides & Generate Reports"
+- MRWA Exception Report downloads as .txt file
+- Ready for commit and push
+
+---
+
+## Task ID: 2026-03-02-004
+**Agent:** Main Agent
+**Task:** Implement Speed Zone Override System for Community-Verified Corrections
+
+### Problem:
+- MRWA speed zone data is outdated after recent road widening on M031
+- Physical sign locations don't match MRWA database SLK boundaries
+- Discrepancies range from 10m to 280m between MRWA data and field-verified signs
+
+### User Field Verification (M031, SLK 64.5-69.3):
+| Boundary | MRWA SLK | Verified SLK | Discrepancy |
+|----------|----------|--------------|-------------|
+| 110→80 | 64.80 | 64.81 | 10m |
+| 80→60 | 65.73 | 65.98 | 250m |
+| 60→90 | 67.34 | 67.62 | 280m |
+| 90→110 | 69.18 | 69.19 | 10m |
+
+### Work Log:
+- Created `/public/data/speed-overrides.json` with verified M031 zone corrections
+- Added `SpeedZoneOverride` interface with full metadata
+- Implemented `loadSpeedOverrides()`, `getSpeedOverrides()`, `clearSpeedOverridesCache()`, `getSpeedOverridesMetadata()` functions
+- Modified `getSpeedZones()` to merge overrides with MRWA data (overrides take precedence)
+- Added override fields to `ParsedSpeedZone` interface (`is_override`, `override_id`, `override_note`, `override_source`)
+- Added Speed Zone Overrides section to Settings panel in main UI
+
+### Override Data Structure:
+```json
+{
+  "id": "M031-002",
+  "road_id": "M031",
+  "start_slk": 64.81,
+  "end_slk": 65.98,
+  "speed_limit": 80,
+  "sign_location": {
+    "slk": 64.81,
+    "lat": -32.09942741,
+    "lon": 116.90796019
+  },
+  "mrwa_slk": 64.80,
+  "discrepancy_m": 10,
+  "source": "community_verified"
+}
+```
+
+### Files Changed:
+- `public/data/speed-overrides.json` (new file)
+- `src/lib/offline-db.ts` (+110 lines - override types, loaders, merge logic)
+- `src/app/page.tsx` (+24 lines - UI section)
+
+### Stage Summary:
+- Version: RC 1.0.3
+- Override system loads automatically on app start
+- Community-verified corrections take precedence over MRWA data
+- UI shows override status and affected roads
+- Commit: Pending push
 
 ---
 

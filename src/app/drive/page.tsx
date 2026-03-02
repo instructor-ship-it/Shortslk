@@ -17,7 +17,7 @@ import {
 import { useGpsTracking, useGpsSettings, type GpsTrackingConfig } from '@/hooks/useGpsTracking';
 
 // App version
-const APP_VERSION = 'RC 1.0.2';
+const APP_VERSION = 'RC 1.0.3';
 
 // GPS lag compensation from localStorage
 interface GpsLagSettings {

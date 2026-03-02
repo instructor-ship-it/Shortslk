@@ -8,6 +8,117 @@ import { haversineDistance } from './utils';
 const DB_NAME = 'RoadFinderDB';
 const DB_VERSION = 3; // Incremented for dataset metadata store
 
+// ============================================================================
+// Speed Zone Overrides (Community-Verified Corrections)
+// ============================================================================
+
+/**
+ * Speed zone override for cases where MRWA data is incorrect or outdated.
+ * These are field-verified corrections that take precedence over MRWA data.
+ */
+export interface SpeedZoneOverride {
+  id: string;
+  road_id: string;
+  road_name: string;
+  common_usage_name?: string;
+  zone_type: string;
+  carriageway: string;
+  start_slk: number;
+  end_slk: number;
+  speed_limit: number;
+  sign_location?: {
+    slk: number;
+    lat: number;
+    lon: number;
+    description?: string;
+  } | null;
+  mrwa_slk?: number;          // Original MRWA SLK if different
+  discrepancy_m?: number;      // Distance in meters from MRWA data
+  note?: string;
+  verified_by?: string;
+  verified_date?: string;
+  source: 'default' | 'community_verified' | 'mrwa_corrected';
+}
+
+interface SpeedOverridesFile {
+  version: string;
+  last_updated: string;
+  description: string;
+  disclaimer: string;
+  overrides: SpeedZoneOverride[];
+}
+
+// Cached overrides
+let cachedOverrides: SpeedZoneOverride[] | null = null;
+
+/**
+ * Load speed zone overrides from the JSON file
+ */
+export async function loadSpeedOverrides(): Promise<SpeedZoneOverride[]> {
+  if (cachedOverrides) {
+    return cachedOverrides;
+  }
+
+  try {
+    const response = await fetch('/data/speed-overrides.json');
+    if (!response.ok) {
+      console.warn('Speed overrides file not found, using empty overrides');
+      return [];
+    }
+
+    const data: SpeedOverridesFile = await response.json();
+    cachedOverrides = data.overrides || [];
+    return cachedOverrides;
+  } catch (error) {
+    console.error('Failed to load speed overrides:', error);
+    return [];
+  }
+}
+
+/**
+ * Get speed zone overrides for a specific road
+ */
+export async function getSpeedOverrides(roadId: string): Promise<SpeedZoneOverride[]> {
+  const overrides = await loadSpeedOverrides();
+  return overrides.filter(o => o.road_id === roadId);
+}
+
+/**
+ * Clear the cached overrides (call when overrides are updated)
+ */
+export function clearSpeedOverridesCache(): void {
+  cachedOverrides = null;
+}
+
+/**
+ * Get all overrides metadata (for display in UI)
+ */
+export async function getSpeedOverridesMetadata(): Promise<{
+  version: string;
+  last_updated: string;
+  total_overrides: number;
+  roads_affected: string[];
+}> {
+  try {
+    const response = await fetch('/data/speed-overrides.json');
+    if (!response.ok) {
+      return { version: '0', last_updated: '', total_overrides: 0, roads_affected: [] };
+    }
+
+    const data: SpeedOverridesFile = await response.json();
+    const roads = [...new Set(data.overrides.map(o => o.road_id))];
+
+    return {
+      version: data.version || '0',
+      last_updated: data.last_updated || '',
+      total_overrides: data.overrides?.length || 0,
+      roads_affected: roads
+    };
+  } catch {
+    return { version: '0', last_updated: '', total_overrides: 0, roads_affected: [] };
+  }
+}
+
 interface RoadData {
   road_id: string;
   road_name: string;
@@ -51,6 +162,11 @@ export interface ParsedSpeedZone {
   speed_corrected?: boolean; // True if this zone was corrected from default
   correction_reason?: string; // Reason for the correction
   correction_confidence?: 'high' | 'medium' | 'low'; // Confidence level
+  // Override fields
+  is_override?: boolean; // True if this zone is from an override
+  override_id?: string; // ID of the override
+  override_note?: string; // Note from the override
+  override_source?: 'default' | 'community_verified' | 'mrwa_corrected'; // Source of override
 }
 
 // Rail Crossing data
@@ -253,12 +369,21 @@ function parseSpeedLimit(speedLimit: number | string): number {
 }
 
 /**
- * Get speed zones for a road
+ * Get speed zones for a road, with overrides applied
+ * 
+ * Priority:
+ * 1. Community-verified overrides (source = 'community_verified')
+ * 2. MRWA data from IndexedDB
+ * 3. Default zones from overrides
  */
 export async function getSpeedZones(roadId: string): Promise<ParsedSpeedZone[]> {
   try {
+    // First, get overrides for this road
+    const overrides = await getSpeedOverrides(roadId);
+    
+    // Get MRWA data from IndexedDB
     const db = await initDB();
-    return new Promise((resolve) => {
+    const mrwaZones = await new Promise<ParsedSpeedZone[]>((resolve) => {
       const tx = db.transaction('speedZones', 'readonly');
       const store = tx.objectStore('speedZones');
       const request = store.get(roadId);
@@ -279,6 +404,56 @@ export async function getSpeedZones(roadId: string): Promise<ParsedSpeedZone[]> 
 
       request.onerror = () => resolve([]);
     });
+
+    // If no overrides, just return MRWA data
+    if (overrides.length === 0) {
+      return mrwaZones;
+    }
+
+    // Convert overrides to ParsedSpeedZone format
+    const overrideZones: ParsedSpeedZone[] = overrides.map(o => ({
+      road_id: o.road_id,
+      road_name: o.road_name,
+      start_slk: o.start_slk,
+      end_slk: o.end_slk,
+      speed_limit: o.speed_limit,
+      carriageway: o.carriageway,
+      is_override: true,
+      override_id: o.id,
+      override_note: o.note,
+      override_source: o.source
+    }));
+
+    // Merge: Remove MRWA zones that overlap with community-verified overrides
+    const communityOverrides = overrideZones.filter(z => 
+      overrides.find(o => o.id === z.override_id && o.source === 'community_verified')
+    );
+    
+    // Filter out MRWA zones that are completely covered by community overrides
+    const filteredMrwaZones = mrwaZones.filter(mrwa => {
+      // Check if this MRWA zone is completely covered by any community override
+      for (const override of communityOverrides) {
+        // If override completely contains the MRWA zone, don't include MRWA zone
+        if (override.start_slk <= mrwa.start_slk && override.end_slk >= mrwa.end_slk) {
+          return false;
+        }
+        // If MRWA zone starts within an override, adjust its end
+        if (mrwa.start_slk >= override.start_slk && mrwa.start_slk < override.end_slk) {
+          // Zone starts in override area - this shouldn't happen with proper data
+          // but we'll skip this zone to be safe
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // Combine filtered MRWA zones with all override zones
+    const combinedZones = [...filteredMrwaZones, ...overrideZones];
+    
+    // Sort by start_slk
+    combinedZones.sort((a, b) => a.start_slk - b.start_slk);
+
+    return combinedZones;
   } catch {
     return [];
   }

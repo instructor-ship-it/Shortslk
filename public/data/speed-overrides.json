@@ -1,0 +1,114 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-03-02",
+  "description": "Community-verified speed zone corrections for MRWA roads. These overrides take precedence over MRWA database when discrepancies exist.",
+  "disclaimer": "This data is field-verified by users. Use at your own discretion. Report corrections to the project maintainers.",
+  "overrides": [
+    {
+      "id": "M031-001",
+      "road_id": "M031",
+      "road_name": "Northam Cranbrook Rd",
+      "common_usage_name": "Great Southern Hwy",
+      "zone_type": "speed_limit",
+      "carriageway": "Single",
+      "start_slk": 64.50,
+      "end_slk": 64.81,
+      "speed_limit": 110,
+      "sign_location": null,
+      "note": "110 km/h rural zone before town approach",
+      "source": "default"
+    },
+    {
+      "id": "M031-002",
+      "road_id": "M031",
+      "road_name": "Northam Cranbrook Rd",
+      "common_usage_name": "Great Southern Hwy",
+      "zone_type": "speed_limit",
+      "carriageway": "Single",
+      "start_slk": 64.81,
+      "end_slk": 65.98,
+      "speed_limit": 80,
+      "sign_location": {
+        "slk": 64.81,
+        "lat": -32.09942741,
+        "lon": 116.90796019,
+        "description": "80 km/h sign facing increasing SLK, 110 km/h on reverse for decreasing traffic"
+      },
+      "mrwa_slk": 64.80,
+      "discrepancy_m": 10,
+      "note": "Road widening completed 2024. MRWA shows SLK 64.80, verified at 64.81.",
+      "verified_by": "field_observation",
+      "verified_date": "2025-03-01",
+      "source": "community_verified"
+    },
+    {
+      "id": "M031-003",
+      "road_id": "M031",
+      "road_name": "Northam Cranbrook Rd",
+      "common_usage_name": "Great Southern Hwy",
+      "zone_type": "speed_limit",
+      "carriageway": "Single",
+      "start_slk": 65.98,
+      "end_slk": 67.62,
+      "speed_limit": 60,
+      "sign_location": {
+        "slk": 65.98,
+        "lat": -32.10420020,
+        "lon": 116.91892960,
+        "description": "60 km/h sign facing increasing SLK, 80 km/h on reverse for decreasing traffic"
+      },
+      "mrwa_slk": 65.73,
+      "discrepancy_m": 250,
+      "note": "Road widening completed 2024. MRWA shows SLK 65.73, verified at 65.98. Significant discrepancy.",
+      "verified_by": "field_observation",
+      "verified_date": "2025-03-01",
+      "source": "community_verified"
+    },
+    {
+      "id": "M031-004",
+      "road_id": "M031",
+      "road_name": "Northam Cranbrook Rd",
+      "common_usage_name": "Great Southern Hwy",
+      "zone_type": "speed_limit",
+      "carriageway": "Single",
+      "start_slk": 67.62,
+      "end_slk": 69.19,
+      "speed_limit": 90,
+      "sign_location": {
+        "slk": 67.62,
+        "lat": -32.11706637,
+        "lon": 116.92667158,
+        "description": "90 km/h sign facing increasing SLK, 60 km/h on reverse for decreasing traffic"
+      },
+      "mrwa_slk": 67.34,
+      "discrepancy_m": 280,
+      "note": "Road widening completed 2024. MRWA shows SLK 67.34, verified at 67.62. Largest discrepancy.",
+      "verified_by": "field_observation",
+      "verified_date": "2025-03-01",
+      "source": "community_verified"
+    },
+    {
+      "id": "M031-005",
+      "road_id": "M031",
+      "road_name": "Northam Cranbrook Rd",
+      "common_usage_name": "Great Southern Hwy",
+      "zone_type": "speed_limit",
+      "carriageway": "Single",
+      "start_slk": 69.19,
+      "end_slk": 75.00,
+      "speed_limit": 110,
+      "sign_location": {
+        "slk": 69.19,
+        "lat": -32.13044808,
+        "lon": 116.92978109,
+        "description": "110 km/h sign facing increasing SLK, 90 km/h on reverse for decreasing traffic"
+      },
+      "mrwa_slk": 69.18,
+      "discrepancy_m": 10,
+      "note": "Road widening completed 2024. MRWA shows SLK 69.18, verified at 69.19.",
+      "verified_by": "field_observation",
+      "verified_date": "2025-03-01",
+      "source": "community_verified"
+    }
+  ]
+}
