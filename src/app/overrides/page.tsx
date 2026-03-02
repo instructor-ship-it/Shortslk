@@ -425,16 +425,43 @@ export default function OverridesPage() {
   };
 
   const downloadFile = () => {
+    // Debug: Check what we're trying to download
+    console.log('=== DOWNLOAD DEBUG ===');
+    console.log('exportContent length:', exportContent.length);
+    console.log('exportContent first 100 chars:', exportContent.substring(0, 100));
+    
+    if (!exportContent || exportContent.length === 0) {
+      showMessage('error', 'No content to download');
+      return;
+    }
+    
+    // Create blob
     const blob = new Blob([exportContent], { type: 'application/json' });
+    console.log('Blob size:', blob.size);
+    console.log('Blob type:', blob.type);
+    
+    // Create URL
     const url = URL.createObjectURL(blob);
+    console.log('Object URL created:', url);
+    
+    // Create download link
     const a = document.createElement('a');
     a.href = url;
     a.download = `speed-overrides-${new Date().toISOString().split('T')[0]}.json`;
+    a.style.display = 'none';
+    
     document.body.appendChild(a);
+    console.log('Triggering download click...');
     a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showMessage('success', 'File downloaded!');
+    
+    // Delay cleanup
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      console.log('Cleanup done');
+    }, 1000);
+    
+    showMessage('success', `Downloaded (${blob.size} bytes)`);
   };
 
   const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -776,6 +803,11 @@ This data should be verified against MRWA records before making database updates
           <p className="text-sm text-gray-400 mb-2">
             Copy the text below or tap Download File (may not work on some mobile browsers)
           </p>
+          {/* Debug info */}
+          <div className="bg-gray-900 p-2 rounded mb-2 text-xs">
+            <span className="text-gray-400">Content size: </span>
+            <span className="text-yellow-400">{exportContent.length} characters</span>
+          </div>
           <textarea
             id="export-textarea"
             value={exportContent}
