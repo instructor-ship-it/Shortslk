@@ -7,18 +7,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   getSpeedOverrides,
   getSpeedOverridesMetadata,
-  getSpeedZones,
   type SpeedZoneOverride,
-  type ParsedSpeedZone,
 } from '@/lib/offline-db';
 
-interface OverrideWithMrwa extends SpeedZoneOverride {
-  mrwa_zone?: ParsedSpeedZone;
-  discrepancy_detected: boolean;
-}
-
 export default function OverridesPage() {
-  const [overrides, setOverrides] = useState<OverrideWithMrwa[]>([]);
+  const [overrides, setOverrides] = useState<SpeedZoneOverride[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [metadata, setMetadata] = useState<{
     version: string;
@@ -48,7 +41,7 @@ export default function OverridesPage() {
   // Select all overrides with discrepancies
   const selectAllDiscrepancies = () => {
     const discrepancyIds = overrides
-      .filter(o => o.discrepancy_detected)
+      .filter(o => o.discrepancy_m && o.discrepancy_m > 0)
       .map(o => o.id);
     setSelectedIds(new Set(discrepancyIds));
   };
@@ -76,55 +69,20 @@ export default function OverridesPage() {
       setMetadata(meta);
 
       // Load all overrides
-      const allOverrides = await getSpeedOverrides(''); // Empty string returns all
-
-      // For each override, try to get MRWA data for comparison
-      const overridesWithMrwa: OverrideWithMrwa[] = await Promise.all(
-        allOverrides.map(async (o) => {
-          // Get MRWA zones for this road
-          const mrwaZones = await getMrwaZonesForRoad(o.road_id);
-
-          // Find MRWA zone that overlaps with override
-          const overlappingMrwa = mrwaZones.find(
-            (z) => z.start_slk <= o.end_slk && z.end_slk >= o.start_slk
-          );
-
-          // Check if there's a discrepancy
-          const discrepancy_detected =
-            !overlappingMrwa ||
-            overlappingMrwa.start_slk !== o.start_slk ||
-            overlappingMrwa.end_slk !== o.end_slk ||
-            overlappingMrwa.speed_limit !== o.speed_limit;
-
-          return {
-            ...o,
-            mrwa_zone: overlappingMrwa,
-            discrepancy_detected,
-          };
-        })
-      );
-
-      setOverrides(overridesWithMrwa);
+      const allOverrides = await getSpeedOverrides('');
+      console.log('Loaded overrides:', allOverrides);
       
-      // Auto-select all overrides with discrepancies
-      const discrepancyIds = overridesWithMrwa
-        .filter(o => o.discrepancy_detected)
+      setOverrides(allOverrides);
+      
+      // Auto-select all overrides with discrepancies (discrepancy_m > 0)
+      const discrepancyIds = allOverrides
+        .filter(o => o.discrepancy_m && o.discrepancy_m > 0)
         .map(o => o.id);
       setSelectedIds(new Set(discrepancyIds));
     } catch (err) {
       console.error('Error loading overrides:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Get MRWA zones from IndexedDB (without overrides applied)
-  const getMrwaZonesForRoad = async (roadId: string): Promise<ParsedSpeedZone[]> => {
-    try {
-      // This returns merged zones - we'll need to work with what we have
-      return await getSpeedZones(roadId);
-    } catch {
-      return [];
     }
   };
 
@@ -186,10 +144,15 @@ ZONE BOUNDARIES:
   Field Verified End SLK:   ${override.end_slk}
 `;
 
-        if (override.mrwa_slk) {
+        if (override.mrwa_slk !== undefined) {
           report += `
   MRWA Database Start SLK:  ${override.mrwa_slk}
-  Discrepancy:              ${override.discrepancy_m || 'N/A'} meters
+`;
+        }
+
+        if (override.discrepancy_m !== undefined) {
+          report += `
+  SLK Discrepancy:          ${override.discrepancy_m} meters
 `;
         }
 
@@ -200,20 +163,6 @@ SIGN LOCATION (GPS Verified):
   Latitude: ${override.sign_location.lat}
   Longitude: ${override.sign_location.lon}
   ${override.sign_location.description ? `Note: ${override.sign_location.description}` : ''}
-`;
-        }
-
-        if (override.mrwa_zone) {
-          report += `
-MRWA DATABASE COMPARISON:
-  MRWA Start SLK:   ${override.mrwa_zone.start_slk}
-  MRWA End SLK:     ${override.mrwa_zone.end_slk}
-  MRWA Speed Limit: ${override.mrwa_zone.speed_limit} km/h
-  
-DIFFERENCES:
-  SLK Start Difference: ${Math.abs(override.start_slk - override.mrwa_zone.start_slk).toFixed(2)} km
-  SLK End Difference:   ${Math.abs(override.end_slk - override.mrwa_zone.end_slk).toFixed(2)} km
-  Speed Match: ${override.speed_limit === override.mrwa_zone.speed_limit ? 'YES' : 'NO'}
 `;
         }
 
@@ -236,17 +185,16 @@ SUMMARY TABLE
 `;
 
       report += `
-| Road ID | Zone Start | Zone End | Speed | MRWA Start | MRWA End | MRWA Speed | Discrepancy |
-|---------|------------|----------|-------|------------|----------|------------|-------------|
+| Road ID | Zone Start | Zone End | Speed | Sign SLK | MRWA SLK | Discrepancy |
+|---------|------------|----------|-------|----------|----------|-------------|
 `;
 
       for (const o of selectedOverrides) {
-        const mrwaStart = o.mrwa_zone?.start_slk?.toFixed(2) || 'N/A';
-        const mrwaEnd = o.mrwa_zone?.end_slk?.toFixed(2) || 'N/A';
-        const mrwaSpeed = o.mrwa_zone?.speed_limit || 'N/A';
-        const disc = o.discrepancy_m ? `${o.discrepancy_m}m` : 'Varies';
+        const signSlk = o.sign_location?.slk?.toFixed(2) || 'N/A';
+        const mrwaSlk = o.mrwa_slk?.toFixed(2) || 'N/A';
+        const disc = o.discrepancy_m ? `${o.discrepancy_m}m` : '-';
 
-        report += `| ${o.road_id} | ${o.start_slk.toFixed(2)} | ${o.end_slk.toFixed(2)} | ${o.speed_limit} | ${mrwaStart} | ${mrwaEnd} | ${mrwaSpeed} | ${disc} |\n`;
+        report += `| ${o.road_id} | ${o.start_slk.toFixed(2)} | ${o.end_slk.toFixed(2)} | ${o.speed_limit} | ${signSlk} | ${mrwaSlk} | ${disc} |\n`;
       }
 
       report += `
@@ -495,7 +443,7 @@ For questions or additional verification, please contact the data contributors.
                 className={`border rounded-lg p-4 transition-colors ${
                   selectedIds.has(override.id)
                     ? 'border-blue-500 bg-blue-900/20'
-                    : override.discrepancy_detected
+                    : override.discrepancy_m && override.discrepancy_m > 0
                     ? 'border-orange-500/50 bg-orange-900/10'
                     : 'border-gray-700'
                 }`}
@@ -525,9 +473,9 @@ For questions or additional verification, please contact the data contributors.
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        {override.discrepancy_detected && (
+                        {override.discrepancy_m && override.discrepancy_m > 0 && (
                           <span className="px-2 py-1 rounded text-xs font-medium bg-orange-600/80 text-white">
-                            Discrepancy
+                            {override.discrepancy_m}m discrepancy
                           </span>
                         )}
                         <span
@@ -562,7 +510,7 @@ For questions or additional verification, please contact the data contributors.
                   <div>
                     <p className="text-gray-500">Discrepancy</p>
                     <p className="text-orange-400">
-                      {override.discrepancy_m ? `${override.discrepancy_m}m` : 'Varies'}
+                      {override.discrepancy_m ? `${override.discrepancy_m}m` : '-'}
                     </p>
                   </div>
                 </div>
@@ -588,31 +536,16 @@ For questions or additional verification, please contact the data contributors.
                   </div>
                 )}
 
-                {override.mrwa_zone && (
+                {override.mrwa_slk !== undefined && (
                   <div className="mt-3 pt-3 border-t border-gray-700 ml-8">
                     <p className="text-gray-500 text-xs mb-1">MRWA Database Comparison</p>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-500">MRWA Zone</p>
-                        <p className="text-white font-mono">
-                          SLK {override.mrwa_zone.start_slk.toFixed(2)} →{' '}
-                          {override.mrwa_zone.end_slk.toFixed(2)}
-                        </p>
+                        <p className="text-gray-500">MRWA SLK</p>
+                        <p className="text-white font-mono">{override.mrwa_slk}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500">MRWA Speed</p>
-                        <p
-                          className={`font-bold ${
-                            override.mrwa_zone.speed_limit !== override.speed_limit
-                              ? 'text-red-400'
-                              : 'text-green-400'
-                          }`}
-                        >
-                          {override.mrwa_zone.speed_limit} km/h
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Verified</p>
+                        <p className="text-gray-500">Verified Date</p>
                         <p className="text-gray-400 text-xs">
                           {override.verified_date || 'N/A'}
                         </p>
