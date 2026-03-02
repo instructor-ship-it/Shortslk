@@ -164,11 +164,16 @@ export async function getSpeedOverridesMetadata(): Promise<{
  * Logic:
  * - Single + Not Replicated: No zone created (repeater sign only)
  * - Single + Replicated: Direction-specific zone (Left or Right carriageway)
- * - Double + Replicated: Single carriageway zone (same speed both directions)
+ * - Double + Replicated + Same Speed: Single carriageway zone (same speed both directions)
+ * - Double + Replicated + Different Speed: Two directional zones (different speeds each way)
  * 
  * Australian Left-Hand Driving:
- * - True Left = faces INCREASING SLK traffic = Left carriageway
- * - True Right = faces DECREASING SLK traffic = Right carriageway
+ * - True Left = sign faces INCREASING SLK traffic
+ * - True Right = sign faces DECREASING SLK traffic
+ * 
+ * For Double signs:
+ * - Front face = what traffic in the sign's direction sees
+ * - Back face = what traffic in the opposite direction sees
  */
 export function signsToSpeedZones(signs: SpeedSignOverride[]): ParsedSpeedZone[] {
   const zones: ParsedSpeedZone[] = [];
@@ -186,19 +191,62 @@ export function signsToSpeedZones(signs: SpeedSignOverride[]): ParsedSpeedZone[]
     }
     
     if (sign.sign_type === 'Double' && sign.replicated) {
-      // Double + Replicated = Same speed both directions (Single carriageway)
-      zones.push({
-        road_id: sign.road_id,
-        road_name: sign.road_name,
-        start_slk: sign.start_slk,
-        end_slk: sign.end_slk!,
-        speed_limit: sign.front_speed,
-        carriageway: 'Single',
-        is_override: true,
-        override_id: sign.id,
-        override_note: sign.note,
-        override_source: sign.source
-      });
+      // Double-sided sign
+      const hasBackSpeed = sign.back_speed !== undefined && sign.back_speed !== null;
+      const speedsAreDifferent = hasBackSpeed && sign.front_speed !== sign.back_speed;
+      
+      if (speedsAreDifferent) {
+        // Different speeds each direction - create TWO zones
+        
+        // Zone 1: Traffic in the sign's facing direction (front face)
+        // True Left = faces INCREASING SLK traffic = Right carriageway
+        // True Right = faces DECREASING SLK traffic = Left carriageway
+        const frontCarriageway = sign.direction === 'True Left' ? 'Right' : 'Left';
+        zones.push({
+          road_id: sign.road_id,
+          road_name: sign.road_name,
+          start_slk: sign.start_slk,
+          end_slk: sign.end_slk!,
+          speed_limit: sign.front_speed,
+          carriageway: frontCarriageway,
+          is_override: true,
+          override_id: sign.id,
+          override_note: sign.note,
+          override_source: sign.source
+        });
+        
+        // Zone 2: Traffic in the opposite direction (back face)
+        // Opposite of True Left (increasing) = decreasing SLK = Left carriageway
+        // Opposite of True Right (decreasing) = increasing SLK = Right carriageway
+        const backCarriageway = sign.direction === 'True Left' ? 'Left' : 'Right';
+        zones.push({
+          road_id: sign.road_id,
+          road_name: sign.road_name,
+          start_slk: sign.start_slk,
+          end_slk: sign.end_slk!,
+          speed_limit: sign.back_speed!,
+          carriageway: backCarriageway,
+          is_override: true,
+          override_id: sign.id,
+          override_note: sign.note,
+          override_source: sign.source
+        });
+      } else {
+        // Same speed both directions (or no back_speed specified) - Single carriageway zone
+        const speed = hasBackSpeed ? sign.back_speed! : sign.front_speed;
+        zones.push({
+          road_id: sign.road_id,
+          road_name: sign.road_name,
+          start_slk: sign.start_slk,
+          end_slk: sign.end_slk!,
+          speed_limit: speed,
+          carriageway: 'Single',
+          is_override: true,
+          override_id: sign.id,
+          override_note: sign.note,
+          override_source: sign.source
+        });
+      }
     } else if (sign.sign_type === 'Single' && sign.replicated) {
       // Single + Replicated = Direction-specific zone
       // True Left = INCREASING SLK = Left carriageway
