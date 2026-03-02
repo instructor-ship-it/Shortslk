@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   getSpeedOverrides,
   getSpeedOverridesMetadata,
@@ -18,6 +19,7 @@ interface OverrideWithMrwa extends SpeedZoneOverride {
 
 export default function OverridesPage() {
   const [overrides, setOverrides] = useState<OverrideWithMrwa[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [metadata, setMetadata] = useState<{
     version: string;
     last_updated: string;
@@ -42,6 +44,30 @@ export default function OverridesPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Select all overrides with discrepancies
+  const selectAllDiscrepancies = () => {
+    const discrepancyIds = overrides
+      .filter(o => o.discrepancy_detected)
+      .map(o => o.id);
+    setSelectedIds(new Set(discrepancyIds));
+  };
+
+  // Deselect all
+  const deselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
+  // Toggle individual override selection
+  const toggleSelection = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -79,6 +105,12 @@ export default function OverridesPage() {
       );
 
       setOverrides(overridesWithMrwa);
+      
+      // Auto-select all overrides with discrepancies
+      const discrepancyIds = overridesWithMrwa
+        .filter(o => o.discrepancy_detected)
+        .map(o => o.id);
+      setSelectedIds(new Set(discrepancyIds));
     } catch (err) {
       console.error('Error loading overrides:', err);
     } finally {
@@ -97,9 +129,17 @@ export default function OverridesPage() {
   };
 
   const generateMrwaExceptionReport = async () => {
+    if (selectedIds.size === 0) {
+      alert('Please select at least one override to include in the report.');
+      return;
+    }
+
     setGeneratingReport(true);
 
     try {
+      // Filter to selected overrides only
+      const selectedOverrides = overrides.filter(o => selectedIds.has(o.id));
+      
       // Generate report content
       const reportDate = new Date().toISOString().split('T')[0];
       let report = `MRWA SPEED ZONE EXCEPTION REPORT
@@ -111,9 +151,9 @@ Version: ${metadata?.version || '1.0'}
 
 EXECUTIVE SUMMARY
 -----------------
-Total Exceptions: ${overrides.filter((o) => o.discrepancy_detected).length}
-Roads Affected: ${[...new Set(overrides.map((o) => o.road_id))].join(', ')}
-Last Updated: ${metadata?.last_updated || 'N/A'}
+Total Exceptions in Report: ${selectedOverrides.length}
+Roads Affected: ${[...new Set(selectedOverrides.map((o) => o.road_id))].join(', ')}
+Override Data Last Updated: ${metadata?.last_updated || 'N/A'}
 
 PURPOSE
 -------
@@ -126,9 +166,7 @@ DETAILED EXCEPTIONS
 
 `;
 
-      for (const override of overrides) {
-        if (!override.discrepancy_detected) continue;
-
+      for (const override of selectedOverrides) {
         report += `
 ================================================================================
 ROAD: ${override.road_id} - ${override.road_name}
@@ -202,7 +240,7 @@ SUMMARY TABLE
 |---------|------------|----------|-------|------------|----------|------------|-------------|
 `;
 
-      for (const o of overrides) {
+      for (const o of selectedOverrides) {
         const mrwaStart = o.mrwa_zone?.start_slk?.toFixed(2) || 'N/A';
         const mrwaEnd = o.mrwa_zone?.end_slk?.toFixed(2) || 'N/A';
         const mrwaSpeed = o.mrwa_zone?.speed_limit || 'N/A';
@@ -227,10 +265,6 @@ All sign locations were verified using GPS equipment with typical accuracy of ±
 This data should be verified against MRWA records before making database updates.
 
 For questions or additional verification, please contact the data contributors.
-
-================================================================================
-END OF REPORT
-================================================================================
 `;
 
       // Create and download the file
@@ -301,13 +335,27 @@ END OF REPORT
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3 mb-6">
+      <div className="flex flex-wrap gap-3 mb-4">
         <Button
           onClick={generateMrwaExceptionReport}
-          disabled={generatingReport || overrides.length === 0}
+          disabled={generatingReport || selectedIds.size === 0}
           className="bg-orange-600 hover:bg-orange-700"
         >
-          {generatingReport ? 'Generating...' : '📄 Generate MRWA Exception Report'}
+          {generatingReport ? 'Generating...' : `📄 Generate Report (${selectedIds.size} selected)`}
+        </Button>
+        <Button
+          onClick={selectAllDiscrepancies}
+          variant="outline"
+          className="border-gray-600 text-gray-300"
+        >
+          Select All with Discrepancies
+        </Button>
+        <Button
+          onClick={deselectAll}
+          variant="outline"
+          className="border-gray-600 text-gray-300"
+        >
+          Deselect All
         </Button>
         <Button
           onClick={() => setShowAddForm(!showAddForm)}
@@ -323,6 +371,15 @@ END OF REPORT
           Refresh
         </Button>
       </div>
+
+      {/* Selection Info */}
+      {selectedIds.size > 0 && (
+        <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-300">
+            ✓ {selectedIds.size} override{selectedIds.size !== 1 ? 's' : ''} selected for report
+          </p>
+        </div>
+      )}
 
       {/* Add Override Form */}
       {showAddForm && (
@@ -422,6 +479,9 @@ END OF REPORT
       {/* Overrides List */}
       <div className="bg-gray-800 rounded-lg p-4">
         <h2 className="text-lg font-semibold text-blue-400 mb-4">Active Overrides</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Click checkboxes to select which overrides to include in the report
+        </p>
 
         {loading ? (
           <p className="text-gray-400">Loading...</p>
@@ -432,33 +492,59 @@ END OF REPORT
             {overrides.map((override) => (
               <div
                 key={override.id}
-                className={`border rounded-lg p-4 ${
-                  override.discrepancy_detected
-                    ? 'border-orange-500 bg-orange-900/20'
+                className={`border rounded-lg p-4 transition-colors ${
+                  selectedIds.has(override.id)
+                    ? 'border-blue-500 bg-blue-900/20'
+                    : override.discrepancy_detected
+                    ? 'border-orange-500/50 bg-orange-900/10'
                     : 'border-gray-700'
                 }`}
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h3 className="font-semibold text-white">
-                      {override.road_id} - {override.road_name}
-                    </h3>
-                    {override.common_usage_name && (
-                      <p className="text-sm text-gray-400">{override.common_usage_name}</p>
-                    )}
+                <div className="flex items-start gap-3 mb-2">
+                  {/* Checkbox */}
+                  <div className="pt-1">
+                    <Checkbox
+                      id={`override-${override.id}`}
+                      checked={selectedIds.has(override.id)}
+                      onCheckedChange={() => toggleSelection(override.id)}
+                      className="border-gray-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                    />
                   </div>
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${
-                      override.source === 'community_verified'
-                        ? 'bg-green-600 text-white'
-                        : 'bg-gray-600 text-gray-300'
-                    }`}
-                  >
-                    {override.source}
-                  </span>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <label
+                          htmlFor={`override-${override.id}`}
+                          className="font-semibold text-white cursor-pointer"
+                        >
+                          {override.road_id} - {override.road_name}
+                        </label>
+                        {override.common_usage_name && (
+                          <p className="text-sm text-gray-400">{override.common_usage_name}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {override.discrepancy_detected && (
+                          <span className="px-2 py-1 rounded text-xs font-medium bg-orange-600/80 text-white">
+                            Discrepancy
+                          </span>
+                        )}
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            override.source === 'community_verified'
+                              ? 'bg-green-600 text-white'
+                              : 'bg-gray-600 text-gray-300'
+                          }`}
+                        >
+                          {override.source}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm ml-8">
                   <div>
                     <p className="text-gray-500">Zone</p>
                     <p className="text-white font-mono">
@@ -482,7 +568,7 @@ END OF REPORT
                 </div>
 
                 {override.sign_location && (
-                  <div className="mt-3 pt-3 border-t border-gray-700">
+                  <div className="mt-3 pt-3 border-t border-gray-700 ml-8">
                     <p className="text-gray-500 text-xs mb-1">Sign Location (GPS)</p>
                     <p className="text-white font-mono text-sm">
                       SLK {override.sign_location.slk} |{' '}
@@ -497,13 +583,13 @@ END OF REPORT
                 )}
 
                 {override.note && (
-                  <div className="mt-2">
+                  <div className="mt-2 ml-8">
                     <p className="text-gray-400 text-sm italic">{override.note}</p>
                   </div>
                 )}
 
                 {override.mrwa_zone && (
-                  <div className="mt-3 pt-3 border-t border-gray-700">
+                  <div className="mt-3 pt-3 border-t border-gray-700 ml-8">
                     <p className="text-gray-500 text-xs mb-1">MRWA Database Comparison</p>
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
@@ -554,10 +640,14 @@ END OF REPORT
             <li>Sign locations don&apos;t match MRWA SLK boundaries</li>
           </ul>
           <p className="mt-3">
-            <strong className="text-white">MRWA Exception Report</strong> generates a text file you
-            can send to Main Roads WA showing the discrepancies between their database and
-            field-verified sign locations.
+            <strong className="text-white">Generating Reports:</strong>
           </p>
+          <ol className="list-decimal list-inside ml-2 space-y-1">
+            <li>Check the boxes next to overrides you want to include</li>
+            <li>Overrides with discrepancies are auto-selected</li>
+            <li>Click &quot;Generate Report&quot; to download a text file</li>
+            <li>Send the report to Main Roads WA</li>
+          </ol>
         </div>
       </div>
     </div>
