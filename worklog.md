@@ -73,6 +73,26 @@ Signs are now captured with full directional and configuration details:
 - Sign-based override system captures full directional info
 - Zone generation now correct for Single carriageway roads
 - UI shows sign configuration clearly
+- **Direction corrected**: True Left = INCREASING SLK, True Right = DECREASING SLK (Australian left-hand driving)
+- Pending push to GitHub
+
+---
+
+## Task ID: 2026-03-02-008
+**Agent:** Main Agent
+**Task:** Correct direction labels for Australian left-hand driving
+
+### Correction:
+Direction labels were reversed. In Australian left-hand driving:
+- **True Left** = Sign faces traffic travelling INCREASING SLK
+- **True Right** = Sign faces traffic travelling DECREASING SLK
+
+### Files Changed:
+- `src/lib/offline-db.ts` (comments corrected)
+- `src/app/overrides/page.tsx` (UI labels corrected)
+
+### Stage Summary:
+- Direction labels now correctly reflect Australian left-hand driving
 - Pending push to GitHub
 
 ---

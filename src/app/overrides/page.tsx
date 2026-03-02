@@ -458,8 +458,8 @@ This data should be verified against MRWA records before making database updates
                 onChange={(e) => setNewSign({ ...newSign, direction: e.target.value as 'True Left' | 'True Right' })}
                 className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
               >
-                <option value="True Right">True Right (↗ increasing SLK)</option>
-                <option value="True Left">True Left (↙ decreasing SLK)</option>
+                <option value="True Left">True Left (↗ increasing SLK)</option>
+                <option value="True Right">True Right (↙ decreasing SLK)</option>
               </select>
             </div>
             <div>
@@ -713,10 +713,10 @@ This data should be verified against MRWA records before making database updates
         <h2 className="text-lg font-semibold text-blue-400 mb-3">How Speed Signs Work</h2>
         <div className="text-sm text-gray-400 space-y-3">
           <div>
-            <strong className="text-white">Direction:</strong>
+            <strong className="text-white">Direction (Australian Left-Hand Driving):</strong>
             <ul className="list-disc list-inside ml-2 mt-1">
-              <li><span className="text-green-400">True Right</span>: Sign faces traffic travelling INCREASING SLK</li>
-              <li><span className="text-yellow-400">True Left</span>: Sign faces traffic travelling DECREASING SLK</li>
+              <li><span className="text-green-400">True Left</span>: Sign faces traffic travelling INCREASING SLK (↗)</li>
+              <li><span className="text-yellow-400">True Right</span>: Sign faces traffic travelling DECREASING SLK (↙)</li>
             </ul>
           </div>
           

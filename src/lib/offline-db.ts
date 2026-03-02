@@ -20,9 +20,12 @@ const DB_VERSION = 3; // Incremented for dataset metadata store
  * - Single + Replicated: Direction-specific zone (different speeds each direction)
  * - Double + Replicated: Same speed both directions (Single carriageway zone)
  * 
- * Direction:
- * - "True Right": Sign faces traffic travelling in direction of INCREASING SLK
- * - "True Left": Sign faces traffic travelling in direction of DECREASING SLK
+ * Direction (Australian Left-Hand Driving):
+ * - "True Left": Sign faces traffic travelling INCREASING SLK (driving on left side of road)
+ * - "True Right": Sign faces traffic travelling DECREASING SLK (driving on left side of road)
+ * 
+ * Example: On M031, a sign at SLK 64.81 facing "True Right" traffic shows the speed
+ * for vehicles travelling DECREASING SLK (towards SLK 64.00, 63.00, etc.)
  */
 export interface SpeedSignOverride {
   id: string;
@@ -149,8 +152,12 @@ export async function getSpeedOverridesMetadata(): Promise<{
  * 
  * Logic:
  * - Single + Not Replicated: No zone created (repeater sign only)
- * - Single + Replicated: Direction-specific zone
+ * - Single + Replicated: Direction-specific zone (Left or Right carriageway)
  * - Double + Replicated: Single carriageway zone (same speed both directions)
+ * 
+ * Australian Left-Hand Driving:
+ * - True Left = faces INCREASING SLK traffic = Left carriageway
+ * - True Right = faces DECREASING SLK traffic = Right carriageway
  */
 export function signsToSpeedZones(signs: SpeedSignOverride[]): ParsedSpeedZone[] {
   const zones: ParsedSpeedZone[] = [];
@@ -183,8 +190,8 @@ export function signsToSpeedZones(signs: SpeedSignOverride[]): ParsedSpeedZone[]
       });
     } else if (sign.sign_type === 'Single' && sign.replicated) {
       // Single + Replicated = Direction-specific zone
-      // The sign faces one direction, so we create a zone for that direction
-      // Note: For full bidirectional support, need another sign entry for opposite direction
+      // True Left = INCREASING SLK = Left carriageway
+      // True Right = DECREASING SLK = Right carriageway
       const carriageway = sign.direction === 'True Right' ? 'Right' : 'Left';
       zones.push({
         road_id: sign.road_id,
