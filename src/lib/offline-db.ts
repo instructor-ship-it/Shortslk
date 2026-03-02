@@ -18,14 +18,19 @@ const DB_VERSION = 3; // Incremented for dataset metadata store
  * Sign Types:
  * - Single + Not Replicated: Repeater sign (informational only, no zone created)
  * - Single + Replicated: Direction-specific zone (different speeds each direction)
- * - Double + Replicated: Same speed both directions (Single carriageway zone)
+ * - Double + Replicated: Creates two zones (one for each direction) if front_speed ≠ back_speed
  * 
  * Direction (Australian Left-Hand Driving):
- * - "True Left": Sign faces traffic travelling INCREASING SLK (driving on left side of road)
- * - "True Right": Sign faces traffic travelling DECREASING SLK (driving on left side of road)
+ * - "True Left": Sign faces traffic travelling INCREASING SLK = Left Carriageway
+ * - "True Right": Sign faces traffic travelling DECREASING SLK = Right Carriageway
  * 
- * Example: On M031, a sign at SLK 64.81 facing "True Right" traffic shows the speed
- * for vehicles travelling DECREASING SLK (towards SLK 64.00, 63.00, etc.)
+ * For Double-sided signs:
+ * - front_speed: Speed shown on the face pointing in 'direction' (True Left or True Right)
+ * - back_speed: Speed shown on the opposite face (for opposite direction traffic)
+ * 
+ * Example: On M031, a sign at SLK 64.81 facing "True Left":
+ * - front_speed (80) applies to INCREASING SLK traffic (Left Carriageway)
+ * - back_speed (110) applies to DECREASING SLK traffic (Right Carriageway)
  */
 export interface SpeedSignOverride {
   id: string;
@@ -199,9 +204,9 @@ export function signsToSpeedZones(signs: SpeedSignOverride[]): ParsedSpeedZone[]
         // Different speeds each direction - create TWO zones
         
         // Zone 1: Traffic in the sign's facing direction (front face)
-        // True Left = faces INCREASING SLK traffic = Right carriageway
-        // True Right = faces DECREASING SLK traffic = Left carriageway
-        const frontCarriageway = sign.direction === 'True Left' ? 'Right' : 'Left';
+        // True Left = faces INCREASING SLK traffic = Left carriageway
+        // True Right = faces DECREASING SLK traffic = Right carriageway
+        const frontCarriageway = sign.direction === 'True Left' ? 'Left' : 'Right';
         zones.push({
           road_id: sign.road_id,
           road_name: sign.road_name,
@@ -216,9 +221,9 @@ export function signsToSpeedZones(signs: SpeedSignOverride[]): ParsedSpeedZone[]
         });
         
         // Zone 2: Traffic in the opposite direction (back face)
-        // Opposite of True Left (increasing) = decreasing SLK = Left carriageway
-        // Opposite of True Right (decreasing) = increasing SLK = Right carriageway
-        const backCarriageway = sign.direction === 'True Left' ? 'Left' : 'Right';
+        // Opposite of True Left (increasing) = decreasing SLK = Right carriageway
+        // Opposite of True Right (decreasing) = increasing SLK = Left carriageway
+        const backCarriageway = sign.direction === 'True Left' ? 'Right' : 'Left';
         zones.push({
           road_id: sign.road_id,
           road_name: sign.road_name,
@@ -600,12 +605,12 @@ export async function getSpeedZones(roadId: string): Promise<ParsedSpeedZone[]> 
  * Get speed limit considering direction of travel (True Right vs True Left)
  * 
  * In WA road terminology:
- * - "True Right" = right side when facing direction of increasing SLK
- * - "True Left" = left side when facing direction of increasing SLK
+ * - "True Left" = Left Carriageway = INCREASING SLK direction
+ * - "True Right" = Right Carriageway = DECREASING SLK direction
  * 
  * For bidirectional zones with different speed limits:
- * - If SLK direction is INCREASING, you're on the RIGHT side (True Right)
- * - If SLK direction is DECREASING, you're on the LEFT side (True Left)
+ * - If SLK direction is INCREASING, use Left carriageway speed
+ * - If SLK direction is DECREASING, use Right carriageway speed
  */
 export function getSpeedLimitForDirection(
   zones: ParsedSpeedZone[],
@@ -632,11 +637,11 @@ export function getSpeedLimitForDirection(
   
   // If we have directional zones, use them based on travel direction
   if (hasDirectionalZones && slkDirection) {
-    // INCREASING SLK = True Right side
-    // DECREASING SLK = True Left side
+    // INCREASING SLK = Left carriageway (True Left)
+    // DECREASING SLK = Right carriageway (True Right)
     zone = slkDirection === 'increasing' 
-      ? (rightZones[0] || leftZones[0] || singleZones[0])
-      : (leftZones[0] || rightZones[0] || singleZones[0]);
+      ? (leftZones[0] || rightZones[0] || singleZones[0])
+      : (rightZones[0] || leftZones[0] || singleZones[0]);
     
     if (zone) {
       speedLimit = zone.speed_limit;
