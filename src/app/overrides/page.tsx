@@ -425,43 +425,69 @@ export default function OverridesPage() {
   };
 
   const downloadFile = () => {
-    // Debug: Check what we're trying to download
-    console.log('=== DOWNLOAD DEBUG ===');
-    console.log('exportContent length:', exportContent.length);
-    console.log('exportContent first 100 chars:', exportContent.substring(0, 100));
-    
     if (!exportContent || exportContent.length === 0) {
       showMessage('error', 'No content to download');
       return;
     }
     
-    // Create blob
+    try {
+      // Method 1: Try data URL (more compatible with some mobile browsers)
+      const dataUrl = 'data:application/json;charset=utf-8,' + encodeURIComponent(exportContent);
+      
+      // Try opening in a new window/tab - user can save from there
+      const newWindow = window.open(dataUrl, '_blank');
+      
+      if (newWindow) {
+        showMessage('success', 'Opened in new tab - use menu to Save Page');
+      } else {
+        // Fallback: Try blob URL with longer timeout
+        const blob = new Blob([exportContent], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `speed-overrides-${new Date().toISOString().split('T')[0]}.json`;
+        a.target = '_self';  // Try _self instead of blank
+        
+        document.body.appendChild(a);
+        a.click();
+        
+        // Much longer delay before cleanup
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 5000);
+        
+        showMessage('success', `Download started (${blob.size} bytes)`);
+      }
+    } catch (err) {
+      showMessage('error', 'Download failed: ' + String(err));
+    }
+  };
+
+  const shareFile = async () => {
+    if (!exportContent) return;
+    
     const blob = new Blob([exportContent], { type: 'application/json' });
-    console.log('Blob size:', blob.size);
-    console.log('Blob type:', blob.type);
+    const file = new File([blob], `speed-overrides-${new Date().toISOString().split('T')[0]}.json`, { type: 'application/json' });
     
-    // Create URL
-    const url = URL.createObjectURL(blob);
-    console.log('Object URL created:', url);
-    
-    // Create download link
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `speed-overrides-${new Date().toISOString().split('T')[0]}.json`;
-    a.style.display = 'none';
-    
-    document.body.appendChild(a);
-    console.log('Triggering download click...');
-    a.click();
-    
-    // Delay cleanup
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      console.log('Cleanup done');
-    }, 1000);
-    
-    showMessage('success', `Downloaded (${blob.size} bytes)`);
+    // Check if Web Share API is available
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Speed Sign Overrides',
+          text: 'Exported speed sign data'
+        });
+        showMessage('success', 'Shared successfully');
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          showMessage('error', 'Share failed');
+        }
+      }
+    } else {
+      showMessage('error', 'Share not supported - use Copy instead');
+    }
   };
 
   const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -792,8 +818,11 @@ This data should be verified against MRWA records before making database updates
               <Button onClick={copyToClipboard} className="bg-green-600 hover:bg-green-700">
                 📋 Copy
               </Button>
+              <Button onClick={shareFile} className="bg-teal-600 hover:bg-teal-700">
+                📱 Share
+              </Button>
               <Button onClick={downloadFile} className="bg-blue-600 hover:bg-blue-700">
-                💾 Download File
+                💾 Download
               </Button>
               <Button onClick={() => setShowExportBox(false)} className="bg-gray-700 hover:bg-gray-600 text-white">
                 ✕ Close
@@ -801,7 +830,7 @@ This data should be verified against MRWA records before making database updates
             </div>
           </div>
           <p className="text-sm text-gray-400 mb-2">
-            Copy the text below or tap Download File (may not work on some mobile browsers)
+            📱 Mobile: Use <strong>Copy</strong> or <strong>Share</strong> (Share lets you save to Files app)
           </p>
           {/* Debug info */}
           <div className="bg-gray-900 p-2 rounded mb-2 text-xs">
