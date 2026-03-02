@@ -142,8 +142,8 @@ export async function getSpeedOverridesMetadata(): Promise<{
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const data = JSON.parse(stored);
-      const roads: string[] = [...new Set(data.signs?.map((s: SpeedSignOverride) => s.road_id) || [])];
+      const data: { version?: string; last_updated?: string; signs?: SpeedSignOverride[] } = JSON.parse(stored);
+      const roads: string[] = [...new Set((data.signs || []).map(s => s.road_id))];
       return {
         version: data.version || '0',
         last_updated: data.last_updated || '',
