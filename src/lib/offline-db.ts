@@ -93,12 +93,14 @@ export async function loadSpeedSignOverrides(): Promise<SpeedSignOverride[]> {
         return [];
       }
       const data = await staticResponse.json();
-      cachedSigns = data.signs || [];
+      const signs: SpeedSignOverride[] = data.signs || [];
+      cachedSigns = signs;
       return cachedSigns;
     }
 
     const data: SpeedSignsFile = await response.json();
-    cachedSigns = data.signs || [];
+    const signs: SpeedSignOverride[] = data.signs || [];
+    cachedSigns = signs;
     return cachedSigns;
   } catch (error) {
     console.error('Failed to load speed overrides:', error);
