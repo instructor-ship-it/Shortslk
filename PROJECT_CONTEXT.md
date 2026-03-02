@@ -1,7 +1,7 @@
 # TC Work Zone Locator - Project Context
 
 > **Last Updated:** 2026-03-02
-> **Current Version:** RC 1.0.2
+> **Current Version:** RC 1.2.0
 > **GitHub:** https://github.com/instructor-ship-it/roadfinder.git
 > **Branches:** master, main (kept in sync)
 > **Project Directory:** `/home/z/my-project/`
@@ -23,7 +23,9 @@ rm -rf * .* 2>/dev/null || true
 git clone https://github.com/instructor-ship-it/roadfinder.git .
 bun install
 
-Then read PROJECT_CONTEXT.md and worklog.md to get up to speed.
+Then read PROJECT_CONTEXT.md to get up to speed.
+
+Apply the domain expertise from this file, then tell me what you understand about the project and ask what we should focus on.
 ```
 
 ### ✅ This workflow was tested and confirmed working on 2026-02-28
@@ -36,6 +38,118 @@ Then read PROJECT_CONTEXT.md and worklog.md to get up to speed.
 | PROJECT_CONTEXT.md | Session memory |
 
 **GitHub is the only true persistence.** Always push changes before ending a session.
+
+---
+
+## 🧠 Domain Expertise
+
+**Apply this expertise when working on the TC Work Zone Locator project:**
+
+You are an expert in Australian road systems, specifically Western Australian road terminology and practices. You understand:
+
+1. Australian left-hand driving conventions
+2. MRWA (Main Roads Western Australia) road classification and data
+3. SLK (Straight Line Kilometre) referencing system
+4. Speed zone management and signage
+5. Traffic control and work zone management
+6. Carriageway terminology (True Left = INCREASING SLK, True Right = DECREASING SLK)
+7. Double-sided speed signs and how they apply to different directions of travel
+
+---
+
+## 📖 Key Terminology (Australian Road System)
+
+### Carriageway & Direction
+| Term | Definition | Also Known As |
+|------|------------|---------------|
+| **True Left** | Traffic travelling INCREASING SLK | Left Carriageway |
+| **True Right** | Traffic travelling DECREASING SLK | Right Carriageway |
+| **Left Carriageway** | Used by INCREASING SLK traffic | True Left |
+| **Right Carriageway** | Used by DECREASING SLK traffic | True Right |
+
+**Important:** When facing INCREASING SLK direction:
+- Left side of road = Left Carriageway = True Left
+- Right side of road = Right Carriageway = True Right
+
+### SLK (Straight Line Kilometre)
+- Road distance marker used in WA
+- Increases in one direction along the road
+- Used to locate signs, zones, work areas
+
+### Speed Signs
+| Type | Description | Zone Created |
+|------|-------------|--------------|
+| **Single + Not Replicated** | Repeater sign (informational) | None |
+| **Single + Replicated** | One-sided, paired with opposite sign | 1 directional zone |
+| **Double + Replicated** | Two-sided sign (most common) | 2 zones if speeds differ |
+
+### Double-Sided Sign Fields
+- **front_speed**: Speed shown on the face pointing in `direction` field
+- **back_speed**: Speed shown on opposite face (for opposite traffic)
+- **direction**: Which way the front face points (True Left or True Right)
+
+**Example:** Sign at SLK 64.81, direction="True Left", front_speed=80, back_speed=110:
+- Left Carriageway (increasing SLK) sees 80 km/h ← front_speed
+- Right Carriageway (decreasing SLK) sees 110 km/h ← back_speed
+
+### Speed Sign Override Data Structure
+```json
+{
+  "id": "M031-S001",
+  "road_id": "M031",
+  "road_name": "Northam Cranbrook Rd",
+  "common_usage_name": "Great Southern Hwy",
+  "slk": 64.81,
+  "lat": -32.09942741,
+  "lon": 116.90796019,
+  "direction": "True Left",
+  "sign_type": "Double",
+  "replicated": true,
+  "start_slk": 64.81,
+  "end_slk": 65.98,
+  "approach_speed": 110,
+  "front_speed": 80,
+  "back_speed": 110,
+  "verified_by": "field_observation",
+  "verified_date": "2026-03-02",
+  "note": "110→80 zone boundary.",
+  "source": "community_verified",
+  "mrwa_slk": 64.80,
+  "discrepancy_m": 10
+}
+```
+
+---
+
+## Architecture Decisions
+
+### Data Storage
+| Data Type | Storage | Why |
+|-----------|---------|-----|
+| Road geometry, MRWA data | IndexedDB | Large datasets, offline access |
+| Speed sign overrides | localStorage | User-editable, works on Vercel (read-only filesystem) |
+| App preferences | localStorage | Simple key-value |
+
+### File Downloads on Mobile
+**Problem:** Programmatic file downloads (Blob URLs) create empty files on some mobile browsers due to security restrictions.
+
+**Solution:** Display data in a textarea for copy/paste. Export shows content on screen with "Copy" button.
+
+### Sign-to-Zone Conversion Logic
+Located in `/src/lib/offline-db.ts` → `signsToSpeedZones()` function:
+
+1. Double sign with different front/back speeds → Creates TWO zones
+2. Double sign with same speeds → Creates ONE Single carriageway zone
+3. Single replicated sign → Creates ONE directional zone
+
+---
+
+## User Preferences
+
+- User works on mobile phone
+- Cannot edit JSON files directly on mobile
+- Prefers copy/paste for data export
+- Works with Australian road terminology daily
 
 ---
 
