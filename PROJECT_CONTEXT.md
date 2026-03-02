@@ -190,6 +190,7 @@ src/
 │   ├── page.tsx              # Main work zone lookup page
 │   ├── drive/page.tsx        # SLK tracking page (GPS)
 │   ├── calibrate/page.tsx    # GPS calibration tool
+│   ├── overrides/page.tsx    # Speed sign override management
 │   └── api/
 │       ├── roads/route.ts    # Road data, SLK coordinates
 │       ├── gps/route.ts       # GPS to SLK conversion
@@ -200,7 +201,7 @@ src/
 │       ├── intersections/route.ts  # Cross road detection
 │       └── admin-sync/route.ts     # MRWA direct sync
 ├── lib/
-│   ├── offline-db.ts        # IndexedDB storage, signage corridor
+│   ├── offline-db.ts        # IndexedDB storage, signage corridor, sign-to-zone logic
 │   ├── mrwa_api.ts          # MRWA ArcGIS API integration
 │   ├── gps-ekf.ts           # Extended Kalman Filter for GPS
 │   └── utils.ts             # Haversine distance calculation
@@ -295,6 +296,28 @@ src/
 ---
 
 ## Recent Changes (v5.x)
+
+### RC 1.2.0 - Speed Sign Override System
+- **Fixed double-sided sign interpretation**
+  - Issue: `signsToSpeedZones()` only used `front_speed`, ignored `back_speed`
+  - Fix: Double signs with different speeds now create TWO zones (one per direction)
+  - Double signs with same speeds create ONE Single carriageway zone
+- **Fixed carriageway mapping**
+  - Corrected: True Left = Left Carriageway = INCREASING SLK
+  - Corrected: True Right = Right Carriageway = DECREASING SLK
+  - Updated `signsToSpeedZones()` and `getSpeedLimitForDirection()` functions
+- **Mobile export fix**
+  - File downloads create empty files on some mobile browsers
+  - Solution: Export displays data in textarea for copy/paste
+  - Added "Copy to Clipboard" button for reliable mobile export
+- **Merged context files**
+  - Merged AI_CONTEXT.md into PROJECT_CONTEXT.md for single source of truth
+  - Added domain expertise prompt and terminology reference
+- **New features in overrides page**
+  - Add/Edit/Delete speed signs
+  - Import from JSON file
+  - Export with copy/paste (mobile-friendly)
+  - Clear all data option
 
 ### RC 1.0.2 - Bug Fix Release
 - **Fixed road priority causing opposite problem**
