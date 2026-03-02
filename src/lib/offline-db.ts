@@ -77,9 +77,14 @@ export async function loadSpeedOverrides(): Promise<SpeedZoneOverride[]> {
 
 /**
  * Get speed zone overrides for a specific road
+ * Pass empty string or null to get ALL overrides
  */
 export async function getSpeedOverrides(roadId: string): Promise<SpeedZoneOverride[]> {
   const overrides = await loadSpeedOverrides();
+  // If roadId is empty or null, return all overrides
+  if (!roadId || roadId === '') {
+    return overrides;
+  }
   return overrides.filter(o => o.road_id === roadId);
 }
 
