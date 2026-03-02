@@ -395,11 +395,11 @@ This data should be verified against MRWA records before making database updates
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4">
-      {/* Message Banner */}
+      {/* Message Banner - fixed at very top */}
       {message && (
-        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg ${
+        <div className={`fixed top-0 left-0 right-0 z-[100] px-4 py-3 text-center font-medium ${
           message.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-        } text-white font-medium`}>
+        } text-white`}>
           {message.text}
         </div>
       )}
