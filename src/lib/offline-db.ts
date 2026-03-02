@@ -74,38 +74,35 @@ interface SpeedSignsFile {
 // Cached signs
 let cachedSigns: SpeedSignOverride[] | null = null;
 
+// Storage key
+const STORAGE_KEY = 'speed-sign-overrides';
+
 /**
- * Load speed sign overrides from the API (which reads from file)
+ * Load speed sign overrides from localStorage (client) or default data (server)
  */
 export async function loadSpeedSignOverrides(): Promise<SpeedSignOverride[]> {
   if (cachedSigns) {
     return cachedSigns;
   }
 
+  // Server-side: return empty, will be loaded client-side
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
   try {
-    // Fetch from API to get the most recent data
-    const response = await fetch('/api/overrides');
-    if (!response.ok) {
-      console.warn('Speed overrides API not available, trying static file');
-      // Fallback to static file
-      const staticResponse = await fetch(`/data/speed-overrides.json?t=${Date.now()}`);
-      if (!staticResponse.ok) {
-        return [];
-      }
-      const data = await staticResponse.json();
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
       const signs: SpeedSignOverride[] = data.signs || [];
       cachedSigns = signs;
       return cachedSigns;
     }
-
-    const data: SpeedSignsFile = await response.json();
-    const signs: SpeedSignOverride[] = data.signs || [];
-    cachedSigns = signs;
-    return cachedSigns;
   } catch (error) {
     console.error('Failed to load speed overrides:', error);
-    return [];
   }
+  
+  return [];
 }
 
 /**
@@ -137,17 +134,16 @@ export async function getSpeedOverridesMetadata(): Promise<{
   total_overrides: number;
   roads_affected: string[];
 }> {
+  // Server-side: return defaults
+  if (typeof window === 'undefined') {
+    return { version: '0', last_updated: '', total_overrides: 0, roads_affected: [] };
+  }
+
   try {
-    // Fetch from API first
-    const response = await fetch('/api/overrides');
-    if (!response.ok) {
-      // Fallback to static file
-      const staticResponse = await fetch(`/data/speed-overrides.json?t=${Date.now()}`);
-      if (!staticResponse.ok) {
-        return { version: '0', last_updated: '', total_overrides: 0, roads_affected: [] };
-      }
-      const data: SpeedSignsFile = await staticResponse.json();
-      const roads: string[] = [...new Set(data.signs?.map(s => s.road_id) || [])];
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
+      const roads: string[] = [...new Set(data.signs?.map((s: SpeedSignOverride) => s.road_id) || [])];
       return {
         version: data.version || '0',
         last_updated: data.last_updated || '',
@@ -155,19 +151,11 @@ export async function getSpeedOverridesMetadata(): Promise<{
         roads_affected: roads
       };
     }
-
-    const data: SpeedSignsFile = await response.json();
-    const roads: string[] = [...new Set(data.signs?.map(s => s.road_id) || [])];
-
-    return {
-      version: data.version || '0',
-      last_updated: data.last_updated || '',
-      total_overrides: data.signs?.length || 0,
-      roads_affected: roads
-    };
   } catch {
-    return { version: '0', last_updated: '', total_overrides: 0, roads_affected: [] };
+    // Ignore errors
   }
+  
+  return { version: '0', last_updated: '', total_overrides: 0, roads_affected: [] };
 }
 
 /**

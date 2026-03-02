@@ -4,12 +4,169 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  getSpeedSignOverrides,
-  getSpeedOverridesMetadata,
-  clearSpeedOverridesCache,
-  type SpeedSignOverride,
-} from '@/lib/offline-db';
+
+// Storage key for localStorage
+const STORAGE_KEY = 'speed-sign-overrides';
+
+interface SpeedSignOverride {
+  id: string;
+  road_id: string;
+  road_name: string;
+  common_usage_name?: string;
+  slk: number;
+  lat?: number;
+  lon?: number;
+  direction: 'True Left' | 'True Right';
+  sign_type: 'Single' | 'Double';
+  replicated: boolean;
+  start_slk: number;
+  end_slk?: number;
+  approach_speed?: number;
+  front_speed: number;
+  back_speed?: number;
+  verified_by?: string;
+  verified_date?: string;
+  note?: string;
+  source?: string;
+  mrwa_slk?: number;
+  discrepancy_m?: number;
+}
+
+interface OverridesData {
+  version: string;
+  last_updated: string;
+  signs: SpeedSignOverride[];
+}
+
+// Default data from the static file
+const DEFAULT_SIGNS: SpeedSignOverride[] = [
+  {
+    id: "M031-S001",
+    road_id: "M031",
+    road_name: "Northam Cranbrook Rd",
+    common_usage_name: "Great Southern Hwy",
+    slk: 64.81,
+    lat: -32.09942741,
+    lon: 116.90796019,
+    direction: "True Right",
+    sign_type: "Double",
+    replicated: true,
+    start_slk: 64.81,
+    end_slk: 65.98,
+    approach_speed: 110,
+    front_speed: 80,
+    back_speed: 110,
+    verified_by: "field_observation",
+    verified_date: "2025-03-01",
+    note: "110→80 zone boundary. Road widening completed 2024.",
+    source: "community_verified",
+    mrwa_slk: 64.80,
+    discrepancy_m: 10
+  },
+  {
+    id: "M031-S002",
+    road_id: "M031",
+    road_name: "Northam Cranbrook Rd",
+    common_usage_name: "Great Southern Hwy",
+    slk: 65.98,
+    lat: -32.10420020,
+    lon: 116.91892960,
+    direction: "True Right",
+    sign_type: "Double",
+    replicated: true,
+    start_slk: 65.98,
+    end_slk: 67.62,
+    approach_speed: 80,
+    front_speed: 60,
+    back_speed: 80,
+    verified_by: "field_observation",
+    verified_date: "2025-03-01",
+    note: "80→60 zone boundary. Road widening completed 2024. 250m discrepancy from MRWA.",
+    source: "community_verified",
+    mrwa_slk: 65.73,
+    discrepancy_m: 250
+  },
+  {
+    id: "M031-S003",
+    road_id: "M031",
+    road_name: "Northam Cranbrook Rd",
+    common_usage_name: "Great Southern Hwy",
+    slk: 67.62,
+    lat: -32.11706637,
+    lon: 116.92667158,
+    direction: "True Right",
+    sign_type: "Double",
+    replicated: true,
+    start_slk: 67.62,
+    end_slk: 69.19,
+    approach_speed: 60,
+    front_speed: 90,
+    back_speed: 60,
+    verified_by: "field_observation",
+    verified_date: "2025-03-01",
+    note: "60→90 zone boundary. Road widening completed 2024. 280m discrepancy from MRWA.",
+    source: "community_verified",
+    mrwa_slk: 67.34,
+    discrepancy_m: 280
+  },
+  {
+    id: "M031-S004",
+    road_id: "M031",
+    road_name: "Northam Cranbrook Rd",
+    common_usage_name: "Great Southern Hwy",
+    slk: 69.19,
+    lat: -32.13044808,
+    lon: 116.92978109,
+    direction: "True Right",
+    sign_type: "Double",
+    replicated: true,
+    start_slk: 69.19,
+    end_slk: 75.00,
+    approach_speed: 90,
+    front_speed: 110,
+    back_speed: 90,
+    verified_by: "field_observation",
+    verified_date: "2025-03-01",
+    note: "90→110 zone boundary. Road widening completed 2024.",
+    source: "community_verified",
+    mrwa_slk: 69.18,
+    discrepancy_m: 10
+  }
+];
+
+// Load data from localStorage
+function loadFromStorage(): OverridesData {
+  if (typeof window === 'undefined') {
+    return { version: '2.0', last_updated: new Date().toISOString().split('T')[0], signs: DEFAULT_SIGNS };
+  }
+  
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
+      return data;
+    }
+  } catch {
+    // Ignore errors
+  }
+  
+  // Initialize with default data
+  const defaultData: OverridesData = {
+    version: '2.0',
+    last_updated: new Date().toISOString().split('T')[0],
+    signs: DEFAULT_SIGNS
+  };
+  saveToStorage(defaultData);
+  return defaultData;
+}
+
+// Save data to localStorage
+function saveToStorage(data: OverridesData): void {
+  if (typeof window === 'undefined') return;
+  
+  data.last_updated = new Date().toISOString().split('T')[0];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
 
 export default function OverridesPage() {
   const [signs, setSigns] = useState<SpeedSignOverride[]>([]);
@@ -51,28 +208,26 @@ export default function OverridesPage() {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = () => {
     setLoading(true);
-    try {
-      // Clear cache first to ensure fresh data
-      clearSpeedOverridesCache();
-      
-      const meta = await getSpeedOverridesMetadata();
-      setMetadata(meta);
+    const data = loadFromStorage();
+    setSigns(data.signs);
+    
+    const roads = [...new Set(data.signs.map(s => s.road_id))];
+    setMetadata({
+      version: data.version,
+      last_updated: data.last_updated,
+      total_overrides: data.signs.length,
+      roads_affected: roads
+    });
 
-      const allSigns = await getSpeedSignOverrides('');
-      setSigns(allSigns);
-
-      // Auto-select all signs with discrepancies
-      const discrepancyIds = allSigns
-        .filter(s => s.discrepancy_m && s.discrepancy_m > 0)
-        .map(s => s.id);
-      setSelectedIds(new Set(discrepancyIds));
-    } catch (err) {
-      console.error('Error loading signs:', err);
-    } finally {
-      setLoading(false);
-    }
+    // Auto-select all signs with discrepancies
+    const discrepancyIds = data.signs
+      .filter(s => s.discrepancy_m && s.discrepancy_m > 0)
+      .map(s => s.id);
+    setSelectedIds(new Set(discrepancyIds));
+    
+    setLoading(false);
   };
 
   const toggleSelection = (id: string) => {
@@ -92,42 +247,35 @@ export default function OverridesPage() {
 
   const deselectAll = () => setSelectedIds(new Set());
 
-  // Show message for 3 seconds
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const handleDeleteSign = async (id: string) => {
+  const handleDeleteSign = (id: string) => {
     setSaving(true);
     try {
-      const response = await fetch('/api/overrides', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', sign: { id } })
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || result.details || 'Failed to delete');
+      const data = loadFromStorage();
+      const index = data.signs.findIndex(s => s.id === id);
+      if (index === -1) {
+        showMessage('error', 'Sign not found');
+        return;
       }
-      
+      data.signs.splice(index, 1);
+      saveToStorage(data);
       showMessage('success', 'Sign deleted successfully');
       setDeleteConfirm(null);
-      await loadData();
+      loadData();
     } catch (error) {
-      console.error('Error deleting sign:', error);
-      showMessage('error', `Failed to delete: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      showMessage('error', 'Failed to delete sign');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleEditSign = async () => {
+  const handleEditSign = () => {
     if (!editingSign) return;
     
-    // Validate required fields
     if (!editingSign.front_speed) {
       showMessage('error', 'Front Speed is required');
       return;
@@ -145,52 +293,28 @@ export default function OverridesPage() {
 
     setSaving(true);
     try {
-      const signJson = {
-        id: editingSign.id,
-        road_id: editingSign.road_id,
-        road_name: editingSign.road_name,
-        common_usage_name: editingSign.common_usage_name || undefined,
-        slk: editingSign.slk,
-        lat: editingSign.lat || undefined,
-        lon: editingSign.lon || undefined,
-        direction: editingSign.direction,
-        sign_type: editingSign.sign_type,
-        replicated: editingSign.replicated,
-        start_slk: editingSign.start_slk,
-        end_slk: editingSign.replicated ? editingSign.end_slk : undefined,
-        approach_speed: editingSign.approach_speed || undefined,
-        front_speed: editingSign.front_speed,
-        back_speed: editingSign.sign_type === 'Double' ? editingSign.back_speed : undefined,
-        verified_by: editingSign.verified_by || 'user_input',
-        note: editingSign.note || undefined,
-        source: editingSign.source || 'community_verified'
-      };
-
-      const response = await fetch('/api/overrides', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update', sign: signJson })
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || result.details || 'Failed to update');
+      const data = loadFromStorage();
+      const index = data.signs.findIndex(s => s.id === editingSign.id);
+      if (index === -1) {
+        showMessage('error', 'Sign not found');
+        return;
       }
+      
+      editingSign.verified_date = new Date().toISOString().split('T')[0];
+      data.signs[index] = editingSign;
+      saveToStorage(data);
       
       showMessage('success', 'Sign updated successfully');
       setEditingSign(null);
-      await loadData();
+      loadData();
     } catch (error) {
-      console.error('Error updating sign:', error);
-      showMessage('error', `Failed to update: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      showMessage('error', 'Failed to update sign');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleAddSign = async () => {
-    // Validate required fields
+  const handleAddSign = () => {
     if (!newSign.road_id || !newSign.slk || !newSign.front_speed) {
       showMessage('error', 'Please fill in Road ID, SLK, and Front Speed');
       return;
@@ -208,7 +332,10 @@ export default function OverridesPage() {
 
     setSaving(true);
     try {
-      const signJson = {
+      const data = loadFromStorage();
+      
+      const sign: SpeedSignOverride = {
+        id: `${newSign.road_id}-S${Date.now().toString().slice(-4)}`,
         road_id: newSign.road_id,
         road_name: newSign.road_name || newSign.road_id,
         common_usage_name: newSign.common_usage_name || undefined,
@@ -224,25 +351,16 @@ export default function OverridesPage() {
         front_speed: parseInt(newSign.front_speed),
         back_speed: newSign.sign_type === 'Double' && newSign.back_speed ? parseInt(newSign.back_speed) : undefined,
         verified_by: 'user_input',
+        verified_date: new Date().toISOString().split('T')[0],
         note: newSign.note || undefined,
         source: 'community_verified'
       };
 
-      const response = await fetch('/api/overrides', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add', sign: signJson })
-      });
+      data.signs.push(sign);
+      saveToStorage(data);
       
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || result.details || 'Failed to add');
-      }
-      
-      showMessage('success', `Sign added successfully (ID: ${result.sign.id})`);
+      showMessage('success', `Sign added successfully (ID: ${sign.id})`);
       setShowAddForm(false);
-      // Reset form
       setNewSign({
         road_id: '',
         road_name: '',
@@ -260,13 +378,26 @@ export default function OverridesPage() {
         back_speed: '',
         note: '',
       });
-      await loadData();
+      loadData();
     } catch (error) {
-      console.error('Error adding sign:', error);
-      showMessage('error', `Failed to add: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      showMessage('error', 'Failed to add sign');
     } finally {
       setSaving(false);
     }
+  };
+
+  const exportData = () => {
+    const data = loadFromStorage();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `speed-overrides-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showMessage('success', 'Data exported successfully');
   };
 
   const generateMrwaExceptionReport = async () => {
@@ -287,18 +418,13 @@ Generated: ${new Date().toLocaleString()}
 Report Date: ${reportDate}
 Source: TC Work Zone Locator - Community Verified Speed Signs
 Version: ${metadata?.version || '2.0'}
+Storage: Local Device (localStorage)
 
 EXECUTIVE SUMMARY
 -----------------
 Total Signs in Report: ${selectedSigns.length}
 Roads Affected: ${[...new Set(selectedSigns.map(s => s.road_id))].join(', ')}
 Data Last Updated: ${metadata?.last_updated || 'N/A'}
-
-PURPOSE
--------
-This report documents discrepancies between MRWA speed zone data and field-verified
-physical signage locations. These discrepancies are likely due to road works (widening,
-re-alignment, or signage updates) that have not yet been reflected in MRWA databases.
 
 SIGN TYPES EXPLAINED
 --------------------
@@ -390,7 +516,6 @@ All sign locations were verified using GPS equipment with typical accuracy of ±
 This data should be verified against MRWA records before making database updates.
 `;
 
-      // Download
       const blob = new Blob([report], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -410,7 +535,7 @@ This data should be verified against MRWA records before making database updates
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4">
-      {/* Message Banner - fixed at very top */}
+      {/* Message Banner */}
       {message && (
         <div className={`fixed top-0 left-0 right-0 z-[100] px-4 py-3 text-center font-medium ${
           message.type === 'success' ? 'bg-green-600' : 'bg-red-600'
@@ -440,8 +565,16 @@ This data should be verified against MRWA records before making database updates
           <h1 className="text-xl font-bold">Speed Sign Overrides</h1>
         </div>
         <div className="text-xs text-gray-500">
-          vRC 1.1.0
+          vRC 1.2.0 | Local Storage
         </div>
+      </div>
+
+      {/* Storage Info */}
+      <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-3 mb-6">
+        <p className="text-sm text-blue-200">
+          📱 <strong>Data is stored locally on your device</strong> - Changes persist in your browser&apos;s localStorage.
+          Use &quot;Export&quot; to backup your data.
+        </p>
       </div>
 
       {/* Status Card */}
@@ -474,7 +607,7 @@ This data should be verified against MRWA records before making database updates
           disabled={generatingReport || selectedIds.size === 0}
           className="bg-orange-600 hover:bg-orange-700"
         >
-          {generatingReport ? 'Generating...' : `📄 Generate Report (${selectedIds.size} selected)`}
+          {generatingReport ? 'Generating...' : `📄 Report (${selectedIds.size} selected)`}
         </Button>
         <Button
           onClick={selectAllDiscrepancies}
@@ -495,6 +628,12 @@ This data should be verified against MRWA records before making database updates
           {showAddForm ? '✕ Cancel' : '+ Add Sign'}
         </Button>
         <Button
+          onClick={exportData}
+          className="bg-purple-600 hover:bg-purple-700"
+        >
+          📤 Export
+        </Button>
+        <Button
           onClick={loadData}
           className="bg-gray-700 hover:bg-gray-600 text-white"
         >
@@ -508,7 +647,6 @@ This data should be verified against MRWA records before making database updates
           <h3 className="text-lg font-semibold text-green-400 mb-4">Add New Speed Sign</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            {/* Road Info */}
             <div>
               <label className="block text-sm text-gray-400 mb-1">Road ID *</label>
               <input
@@ -542,7 +680,6 @@ This data should be verified against MRWA records before making database updates
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            {/* Sign Location */}
             <div>
               <label className="block text-sm text-gray-400 mb-1">SLK *</label>
               <input
@@ -555,7 +692,7 @@ This data should be verified against MRWA records before making database updates
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Latitude (optional)</label>
+              <label className="block text-sm text-gray-400 mb-1">Latitude</label>
               <input
                 type="number"
                 step="0.00000001"
@@ -566,7 +703,7 @@ This data should be verified against MRWA records before making database updates
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Longitude (optional)</label>
+              <label className="block text-sm text-gray-400 mb-1">Longitude</label>
               <input
                 type="number"
                 step="0.00000001"
@@ -579,7 +716,6 @@ This data should be verified against MRWA records before making database updates
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            {/* Sign Configuration */}
             <div>
               <label className="block text-sm text-gray-400 mb-1">Direction *</label>
               <select
@@ -609,8 +745,8 @@ This data should be verified against MRWA records before making database updates
                 onChange={(e) => setNewSign({ ...newSign, replicated: e.target.value === 'yes' })}
                 className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
               >
-                <option value="yes">Yes - matching sign opposite</option>
-                <option value="no">No - standalone sign</option>
+                <option value="yes">Yes - matching sign</option>
+                <option value="no">No - standalone</option>
               </select>
             </div>
             <div>
@@ -620,7 +756,7 @@ This data should be verified against MRWA records before making database updates
                 step="0.01"
                 value={newSign.end_slk}
                 onChange={(e) => setNewSign({ ...newSign, end_slk: e.target.value })}
-                placeholder={newSign.replicated ? "Required if replicated" : "Not needed"}
+                placeholder={newSign.replicated ? "Required" : "Not needed"}
                 disabled={!newSign.replicated}
                 className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white disabled:opacity-50"
               />
@@ -628,9 +764,8 @@ This data should be verified against MRWA records before making database updates
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            {/* Speeds */}
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Approach Speed {newSign.replicated ? '*' : ''}</label>
+              <label className="block text-sm text-gray-400 mb-1">Approach Speed</label>
               <input
                 type="number"
                 step="10"
@@ -658,7 +793,7 @@ This data should be verified against MRWA records before making database updates
                 step="10"
                 value={newSign.back_speed}
                 onChange={(e) => setNewSign({ ...newSign, back_speed: e.target.value })}
-                placeholder={newSign.sign_type === 'Double' ? "Required for double" : "Single sided"}
+                placeholder={newSign.sign_type === 'Double' ? "Required" : "N/A"}
                 disabled={newSign.sign_type !== 'Double'}
                 className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white disabled:opacity-50"
               />
@@ -675,199 +810,100 @@ This data should be verified against MRWA records before making database updates
             </div>
           </div>
 
-          {/* Zone Preview */}
-          {newSign.replicated && newSign.sign_type === 'Double' && (
-            <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-3 mb-4">
-              <p className="text-sm text-blue-300 font-semibold mb-1">Zone Preview:</p>
-              <p className="text-sm text-blue-200">
-                SLK {newSign.slk || '?'} → {newSign.end_slk || '?'} @ {newSign.front_speed || '?'} km/h
-                <span className="text-green-400"> (Both directions - Single carriageway)</span>
-              </p>
-            </div>
-          )}
-
           <div className="flex gap-3">
             <Button onClick={handleAddSign} className="bg-green-600 hover:bg-green-700" disabled={saving}>
               {saving ? 'Saving...' : '💾 Save Sign'}
             </Button>
-            <Button
-              onClick={() => setShowAddForm(false)}
-              className="bg-gray-700 hover:bg-gray-600 text-white"
-            >
+            <Button onClick={() => setShowAddForm(false)} className="bg-gray-700 hover:bg-gray-600 text-white">
               Cancel
             </Button>
           </div>
         </div>
       )}
 
-      {/* Edit Sign Form Modal */}
+      {/* Edit Sign Modal */}
       {editingSign && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-blue-700">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-blue-400">Edit Speed Sign: {editingSign.id}</h3>
-              <Button
-                onClick={() => setEditingSign(null)}
-                className="bg-gray-700 hover:bg-gray-600 text-white h-8 w-8 p-0"
-              >
-                ✕
-              </Button>
+              <h3 className="text-lg font-semibold text-blue-400">Edit: {editingSign.id}</h3>
+              <Button onClick={() => setEditingSign(null)} className="bg-gray-700 hover:bg-gray-600 text-white h-8 w-8 p-0">✕</Button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              {/* Road Info */}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Road ID</label>
-                <input
-                  type="text"
-                  value={editingSign.road_id}
-                  onChange={(e) => setEditingSign({ ...editingSign, road_id: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                />
+                <input type="text" value={editingSign.road_id} onChange={(e) => setEditingSign({ ...editingSign, road_id: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white" />
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Road Name</label>
-                <input
-                  type="text"
-                  value={editingSign.road_name || ''}
-                  onChange={(e) => setEditingSign({ ...editingSign, road_name: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                />
+                <input type="text" value={editingSign.road_name || ''} onChange={(e) => setEditingSign({ ...editingSign, road_name: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white" />
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Common Name</label>
-                <input
-                  type="text"
-                  value={editingSign.common_usage_name || ''}
-                  onChange={(e) => setEditingSign({ ...editingSign, common_usage_name: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                />
+                <input type="text" value={editingSign.common_usage_name || ''} onChange={(e) => setEditingSign({ ...editingSign, common_usage_name: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              {/* Sign Location */}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">SLK</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={editingSign.slk}
-                  onChange={(e) => setEditingSign({ ...editingSign, slk: parseFloat(e.target.value) || 0 })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                />
+                <input type="number" step="0.01" value={editingSign.slk} onChange={(e) => setEditingSign({ ...editingSign, slk: parseFloat(e.target.value) || 0 })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white" />
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Latitude</label>
-                <input
-                  type="number"
-                  step="0.00000001"
-                  value={editingSign.lat || ''}
-                  onChange={(e) => setEditingSign({ ...editingSign, lat: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                />
+                <input type="number" step="0.00000001" value={editingSign.lat || ''} onChange={(e) => setEditingSign({ ...editingSign, lat: e.target.value ? parseFloat(e.target.value) : undefined })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white" />
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Longitude</label>
-                <input
-                  type="number"
-                  step="0.00000001"
-                  value={editingSign.lon || ''}
-                  onChange={(e) => setEditingSign({ ...editingSign, lon: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                />
+                <input type="number" step="0.00000001" value={editingSign.lon || ''} onChange={(e) => setEditingSign({ ...editingSign, lon: e.target.value ? parseFloat(e.target.value) : undefined })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              {/* Sign Configuration */}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Direction</label>
-                <select
-                  value={editingSign.direction}
-                  onChange={(e) => setEditingSign({ ...editingSign, direction: e.target.value as 'True Left' | 'True Right' })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                >
-                  <option value="True Left">True Left (↗ increasing SLK)</option>
-                  <option value="True Right">True Right (↙ decreasing SLK)</option>
+                <select value={editingSign.direction} onChange={(e) => setEditingSign({ ...editingSign, direction: e.target.value as 'True Left' | 'True Right' })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+                  <option value="True Left">True Left (↗)</option>
+                  <option value="True Right">True Right (↙)</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Sign Type</label>
-                <select
-                  value={editingSign.sign_type}
-                  onChange={(e) => setEditingSign({ ...editingSign, sign_type: e.target.value as 'Single' | 'Double' })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                >
-                  <option value="Single">Single Sided</option>
-                  <option value="Double">Double Sided</option>
+                <select value={editingSign.sign_type} onChange={(e) => setEditingSign({ ...editingSign, sign_type: e.target.value as 'Single' | 'Double' })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+                  <option value="Single">Single</option>
+                  <option value="Double">Double</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Replicated?</label>
-                <select
-                  value={editingSign.replicated ? 'yes' : 'no'}
-                  onChange={(e) => setEditingSign({ ...editingSign, replicated: e.target.value === 'yes' })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                >
-                  <option value="yes">Yes - matching sign</option>
-                  <option value="no">No - standalone</option>
+                <select value={editingSign.replicated ? 'yes' : 'no'} onChange={(e) => setEditingSign({ ...editingSign, replicated: e.target.value === 'yes' })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">End SLK</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={editingSign.end_slk || ''}
-                  onChange={(e) => setEditingSign({ ...editingSign, end_slk: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  disabled={!editingSign.replicated}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white disabled:opacity-50"
-                />
+                <input type="number" step="0.01" value={editingSign.end_slk || ''} onChange={(e) => setEditingSign({ ...editingSign, end_slk: e.target.value ? parseFloat(e.target.value) : undefined })} disabled={!editingSign.replicated} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white disabled:opacity-50" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              {/* Speeds */}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Approach Speed</label>
-                <input
-                  type="number"
-                  step="10"
-                  value={editingSign.approach_speed || ''}
-                  onChange={(e) => setEditingSign({ ...editingSign, approach_speed: e.target.value ? parseInt(e.target.value) : undefined })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                />
+                <input type="number" step="10" value={editingSign.approach_speed || ''} onChange={(e) => setEditingSign({ ...editingSign, approach_speed: e.target.value ? parseInt(e.target.value) : undefined })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white" />
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Front Speed *</label>
-                <input
-                  type="number"
-                  step="10"
-                  value={editingSign.front_speed}
-                  onChange={(e) => setEditingSign({ ...editingSign, front_speed: parseInt(e.target.value) || 0 })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                />
+                <input type="number" step="10" value={editingSign.front_speed} onChange={(e) => setEditingSign({ ...editingSign, front_speed: parseInt(e.target.value) || 0 })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white" />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Back Speed {editingSign.sign_type === 'Double' ? '*' : ''}</label>
-                <input
-                  type="number"
-                  step="10"
-                  value={editingSign.back_speed || ''}
-                  onChange={(e) => setEditingSign({ ...editingSign, back_speed: e.target.value ? parseInt(e.target.value) : undefined })}
-                  disabled={editingSign.sign_type !== 'Double'}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white disabled:opacity-50"
-                />
+                <label className="block text-sm text-gray-400 mb-1">Back Speed</label>
+                <input type="number" step="10" value={editingSign.back_speed || ''} onChange={(e) => setEditingSign({ ...editingSign, back_speed: e.target.value ? parseInt(e.target.value) : undefined })} disabled={editingSign.sign_type !== 'Double'} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white disabled:opacity-50" />
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Note</label>
-                <input
-                  type="text"
-                  value={editingSign.note || ''}
-                  onChange={(e) => setEditingSign({ ...editingSign, note: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                />
+                <input type="text" value={editingSign.note || ''} onChange={(e) => setEditingSign({ ...editingSign, note: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white" />
               </div>
             </div>
 
@@ -875,12 +911,7 @@ This data should be verified against MRWA records before making database updates
               <Button onClick={handleEditSign} className="bg-blue-600 hover:bg-blue-700" disabled={saving}>
                 {saving ? 'Saving...' : '💾 Save Changes'}
               </Button>
-              <Button
-                onClick={() => setEditingSign(null)}
-                className="bg-gray-700 hover:bg-gray-600 text-white"
-              >
-                Cancel
-              </Button>
+              <Button onClick={() => setEditingSign(null)} className="bg-gray-700 hover:bg-gray-600 text-white">Cancel</Button>
             </div>
           </div>
         </div>
@@ -897,169 +928,57 @@ This data should be verified against MRWA records before making database updates
         ) : (
           <div className="space-y-4">
             {signs.map((sign) => (
-              <div
-                key={sign.id}
-                className={`border rounded-lg p-4 transition-colors ${
-                  selectedIds.has(sign.id)
-                    ? 'border-blue-500 bg-blue-900/20'
-                    : sign.discrepancy_m && sign.discrepancy_m > 0
-                    ? 'border-orange-500/50 bg-orange-900/10'
-                    : 'border-gray-700'
-                }`}
-              >
+              <div key={sign.id} className={`border rounded-lg p-4 transition-colors ${
+                selectedIds.has(sign.id) ? 'border-blue-500 bg-blue-900/20' :
+                sign.discrepancy_m && sign.discrepancy_m > 0 ? 'border-orange-500/50 bg-orange-900/10' : 'border-gray-700'
+              }`}>
                 <div className="flex items-start gap-3 mb-2">
                   <div className="pt-1">
-                    <Checkbox
-                      id={`sign-${sign.id}`}
-                      checked={selectedIds.has(sign.id)}
-                      onCheckedChange={() => toggleSelection(sign.id)}
-                      className="border-gray-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                    />
+                    <Checkbox id={`sign-${sign.id}`} checked={selectedIds.has(sign.id)} onCheckedChange={() => toggleSelection(sign.id)} className="border-gray-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" />
                   </div>
-                  
                   <div className="flex-1">
                     <div className="flex items-start justify-between">
                       <div>
-                        <label className="font-semibold text-white cursor-pointer">
-                          {sign.road_id} - {sign.road_name}
-                        </label>
-                        {sign.common_usage_name && (
-                          <p className="text-sm text-gray-400">{sign.common_usage_name}</p>
-                        )}
+                        <label className="font-semibold text-white cursor-pointer">{sign.road_id} - {sign.road_name}</label>
+                        {sign.common_usage_name && <p className="text-sm text-gray-400">{sign.common_usage_name}</p>}
                       </div>
                       <div className="flex items-center gap-2">
                         {sign.discrepancy_m && sign.discrepancy_m > 0 && (
-                          <span className="px-2 py-1 rounded text-xs font-medium bg-orange-600/80 text-white">
-                            {sign.discrepancy_m}m discrepancy
-                          </span>
+                          <span className="px-2 py-1 rounded text-xs font-medium bg-orange-600/80 text-white">{sign.discrepancy_m}m discrepancy</span>
                         )}
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          sign.sign_type === 'Double' ? 'bg-purple-600' : 'bg-blue-600'
-                        } text-white`}>
-                          {sign.sign_type}
-                        </span>
-                        {sign.replicated && (
-                          <span className="px-2 py-1 rounded text-xs font-medium bg-green-600 text-white">
-                            Replicated
-                          </span>
-                        )}
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${sign.sign_type === 'Double' ? 'bg-purple-600' : 'bg-blue-600'} text-white`}>{sign.sign_type}</span>
+                        {sign.replicated && <span className="px-2 py-1 rounded text-xs font-medium bg-green-600 text-white">Replicated</span>}
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm ml-8">
-                  <div>
-                    <p className="text-gray-500">Location</p>
-                    <p className="text-white font-mono">SLK {sign.slk}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Direction</p>
-                    <p className="text-white">{sign.direction}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Zone</p>
-                    <p className="text-white font-mono">
-                      {sign.end_slk ? `${sign.start_slk} → ${sign.end_slk}` : 'Repeater'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Speed</p>
-                    <p className="text-orange-400 font-bold">
-                      {sign.front_speed} km/h
-                      {sign.sign_type === 'Double' && sign.back_speed && (
-                        <span className="text-gray-400 font-normal"> / {sign.back_speed} back</span>
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Approach</p>
-                    <p className="text-gray-300">{sign.approach_speed ? `${sign.approach_speed} km/h` : '-'}</p>
-                  </div>
+                  <div><p className="text-gray-500">Location</p><p className="text-white font-mono">SLK {sign.slk}</p></div>
+                  <div><p className="text-gray-500">Direction</p><p className="text-white">{sign.direction}</p></div>
+                  <div><p className="text-gray-500">Zone</p><p className="text-white font-mono">{sign.end_slk ? `${sign.start_slk} → ${sign.end_slk}` : 'Repeater'}</p></div>
+                  <div><p className="text-gray-500">Speed</p><p className="text-orange-400 font-bold">{sign.front_speed} km/h{sign.sign_type === 'Double' && sign.back_speed && <span className="text-gray-400 font-normal"> / {sign.back_speed} back</span>}</p></div>
+                  <div><p className="text-gray-500">Approach</p><p className="text-gray-300">{sign.approach_speed ? `${sign.approach_speed} km/h` : '-'}</p></div>
                 </div>
 
-                {sign.note && (
-                  <div className="mt-2 ml-8">
-                    <p className="text-gray-400 text-sm italic">{sign.note}</p>
-                  </div>
-                )}
+                {sign.note && <div className="mt-2 ml-8"><p className="text-gray-400 text-sm italic">{sign.note}</p></div>}
 
-                {/* Edit/Delete buttons */}
                 <div className="mt-3 pt-3 border-t border-gray-700 ml-8 flex justify-end gap-2">
-                  {/* Edit Button */}
-                  <Button
-                    onClick={() => setEditingSign(sign)}
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 h-7 text-xs"
-                  >
-                    Edit
-                  </Button>
-                  
-                  {/* Delete Button */}
+                  <Button onClick={() => setEditingSign(sign)} size="sm" className="bg-blue-600 hover:bg-blue-700 h-7 text-xs">Edit</Button>
                   {deleteConfirm === sign.id ? (
                     <div className="flex items-center gap-2">
                       <span className="text-red-400 text-sm">Delete?</span>
-                      <Button
-                        onClick={() => handleDeleteSign(sign.id)}
-                        size="sm"
-                        className="bg-red-600 hover:bg-red-700 h-7 text-xs"
-                      >
-                        Yes
-                      </Button>
-                      <Button
-                        onClick={() => setDeleteConfirm(null)}
-                        size="sm"
-                        className="bg-gray-700 hover:bg-gray-600 h-7 text-xs"
-                      >
-                        No
-                      </Button>
+                      <Button onClick={() => handleDeleteSign(sign.id)} size="sm" className="bg-red-600 hover:bg-red-700 h-7 text-xs">Yes</Button>
+                      <Button onClick={() => setDeleteConfirm(null)} size="sm" className="bg-gray-700 hover:bg-gray-600 h-7 text-xs">No</Button>
                     </div>
                   ) : (
-                    <Button
-                      onClick={() => setDeleteConfirm(sign.id)}
-                      size="sm"
-                      className="bg-red-900/50 hover:bg-red-800 text-red-300 h-7 text-xs"
-                    >
-                      Delete
-                    </Button>
+                    <Button onClick={() => setDeleteConfirm(sign.id)} size="sm" className="bg-red-900/50 hover:bg-red-800 text-red-300 h-7 text-xs">Delete</Button>
                   )}
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
-
-      {/* Help Section */}
-      <div className="mt-6 bg-gray-800 rounded-lg p-4">
-        <h2 className="text-lg font-semibold text-blue-400 mb-3">How Speed Signs Work</h2>
-        <div className="text-sm text-gray-400 space-y-3">
-          <div>
-            <strong className="text-white">Direction (Australian Left-Hand Driving):</strong>
-            <ul className="list-disc list-inside ml-2 mt-1">
-              <li><span className="text-green-400">True Left</span>: Sign faces traffic travelling INCREASING SLK (↗)</li>
-              <li><span className="text-yellow-400">True Right</span>: Sign faces traffic travelling DECREASING SLK (↙)</li>
-            </ul>
-          </div>
-          
-          <div>
-            <strong className="text-white">Sign Types:</strong>
-            <ul className="list-disc list-inside ml-2 mt-1">
-              <li><span className="text-blue-400">Single + Not Replicated</span>: Repeater (info only, no zone)</li>
-              <li><span className="text-blue-400">Single + Replicated</span>: Direction-specific zone</li>
-              <li><span className="text-purple-400">Double + Replicated</span>: Same speed both directions (Single carriageway)</li>
-            </ul>
-          </div>
-
-          <div>
-            <strong className="text-white">Speeds:</strong>
-            <ul className="list-disc list-inside ml-2 mt-1">
-              <li><span className="text-gray-300">Approach Speed</span>: Speed BEFORE reaching this sign</li>
-              <li><span className="text-orange-400">Front Speed</span>: Speed shown to selected direction</li>
-              <li><span className="text-gray-300">Back Speed</span>: Speed on reverse face (opposite direction)</li>
-            </ul>
-          </div>
-        </div>
       </div>
     </div>
   );
