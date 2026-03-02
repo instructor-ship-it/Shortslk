@@ -103,14 +103,18 @@ export default function OverridesPage() {
         body: JSON.stringify({ action: 'delete', sign: { id } })
       });
       
-      if (!response.ok) throw new Error('Failed to delete');
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || result.details || 'Failed to delete');
+      }
       
       showMessage('success', 'Sign deleted successfully');
       setDeleteConfirm(null);
       await loadData();
     } catch (error) {
       console.error('Error deleting sign:', error);
-      showMessage('error', 'Failed to delete sign');
+      showMessage('error', `Failed to delete: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
@@ -164,14 +168,18 @@ export default function OverridesPage() {
         body: JSON.stringify({ action: 'update', sign: signJson })
       });
       
-      if (!response.ok) throw new Error('Failed to update');
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || result.details || 'Failed to update');
+      }
       
       showMessage('success', 'Sign updated successfully');
       setEditingSign(null);
       await loadData();
     } catch (error) {
       console.error('Error updating sign:', error);
-      showMessage('error', 'Failed to update sign');
+      showMessage('error', `Failed to update: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
@@ -222,9 +230,12 @@ export default function OverridesPage() {
         body: JSON.stringify({ action: 'add', sign: signJson })
       });
       
-      if (!response.ok) throw new Error('Failed to add');
-      
       const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || result.details || 'Failed to add');
+      }
+      
       showMessage('success', `Sign added successfully (ID: ${result.sign.id})`);
       setShowAddForm(false);
       // Reset form
@@ -248,7 +259,7 @@ export default function OverridesPage() {
       await loadData();
     } catch (error) {
       console.error('Error adding sign:', error);
-      showMessage('error', 'Failed to add sign');
+      showMessage('error', `Failed to add: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
