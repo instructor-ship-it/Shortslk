@@ -401,29 +401,38 @@ export default function OverridesPage() {
   };
 
   const exportData = () => {
-    const data = loadFromStorage();
-    
-    // Ensure we have data to export
-    if (!data || !data.signs || data.signs.length === 0) {
-      showMessage('error', 'No data to export');
-      return;
-    }
-    
     try {
-      const jsonString = JSON.stringify(data, null, 2);
+      // Simple test content first
+      const testData = {
+        message: "TEST EXPORT - This confirms download works",
+        timestamp: new Date().toISOString(),
+        testArray: [1, 2, 3, "four", "five"]
+      };
+      
+      const jsonString = JSON.stringify(testData, null, 2);
+      console.log('Export data:', jsonString);
+      
       const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
+      
       const a = document.createElement('a');
+      a.style.display = 'none';
       a.href = url;
-      a.download = `speed-overrides-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `test-export-${Date.now()}.json`;
+      
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showMessage('success', `Exported ${data.signs.length} signs successfully`);
+      
+      // Cleanup after a short delay
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      showMessage('success', 'Test file downloaded - check your Downloads folder');
     } catch (error) {
       console.error('Export error:', error);
-      showMessage('error', 'Failed to export data');
+      showMessage('error', 'Failed to export data: ' + String(error));
     }
   };
 
