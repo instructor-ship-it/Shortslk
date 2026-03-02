@@ -23,6 +23,7 @@ export default function OverridesPage() {
   const [generatingReport, setGeneratingReport] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [editingSign, setEditingSign] = useState<SpeedSignOverride | null>(null);
 
   // New sign form state
   const [newSign, setNewSign] = useState({
@@ -89,6 +90,55 @@ export default function OverridesPage() {
     // For now, show instructions since we can't write to JSON directly from client
     alert(`To delete sign ${id}, edit /public/data/speed-overrides.json and remove the sign entry with that ID.`);
     setDeleteConfirm(null);
+  };
+
+  const handleEditSign = () => {
+    if (!editingSign) return;
+    
+    // Validate required fields
+    if (!editingSign.front_speed) {
+      alert('Front Speed is required');
+      return;
+    }
+
+    if (editingSign.replicated && !editingSign.end_slk) {
+      alert('End SLK is required when sign is replicated');
+      return;
+    }
+
+    if (editingSign.sign_type === 'Double' && !editingSign.back_speed) {
+      alert('Back Speed is required for double-sided signs');
+      return;
+    }
+
+    // Generate updated JSON for user to copy
+    const signJson = {
+      id: editingSign.id,
+      road_id: editingSign.road_id,
+      road_name: editingSign.road_name,
+      common_usage_name: editingSign.common_usage_name || undefined,
+      slk: editingSign.slk,
+      lat: editingSign.lat || undefined,
+      lon: editingSign.lon || undefined,
+      direction: editingSign.direction,
+      sign_type: editingSign.sign_type,
+      replicated: editingSign.replicated,
+      start_slk: editingSign.start_slk,
+      end_slk: editingSign.replicated ? editingSign.end_slk : undefined,
+      approach_speed: editingSign.approach_speed || undefined,
+      front_speed: editingSign.front_speed,
+      back_speed: editingSign.sign_type === 'Double' ? editingSign.back_speed : undefined,
+      verified_by: editingSign.verified_by || 'user_input',
+      verified_date: new Date().toISOString().split('T')[0],
+      note: editingSign.note || undefined,
+      source: editingSign.source || 'community_verified'
+    };
+
+    // Show JSON for user to copy
+    const jsonStr = JSON.stringify(signJson, null, 2);
+    alert(`Update this sign in /public/data/speed-overrides.json:\n\nFind sign with id: "${editingSign.id}"\nReplace with:\n\n${jsonStr}`);
+    
+    setEditingSign(null);
   };
 
   const handleAddSign = async () => {
@@ -301,7 +351,7 @@ This data should be verified against MRWA records before making database updates
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <Link href="/">
-            <Button variant="outline" className="border-gray-600 text-gray-300">
+            <Button className="bg-gray-700 hover:bg-gray-600 text-white">
               ← Back
             </Button>
           </Link>
@@ -346,15 +396,13 @@ This data should be verified against MRWA records before making database updates
         </Button>
         <Button
           onClick={selectAllDiscrepancies}
-          variant="outline"
-          className="border-gray-600 text-gray-300"
+          className="bg-blue-700 hover:bg-blue-600 text-white"
         >
           Select Discrepancies
         </Button>
         <Button
           onClick={deselectAll}
-          variant="outline"
-          className="border-gray-600 text-gray-300"
+          className="bg-gray-700 hover:bg-gray-600 text-white"
         >
           Deselect All
         </Button>
@@ -366,8 +414,7 @@ This data should be verified against MRWA records before making database updates
         </Button>
         <Button
           onClick={loadData}
-          variant="outline"
-          className="border-gray-600 text-gray-300"
+          className="bg-gray-700 hover:bg-gray-600 text-white"
         >
           Refresh
         </Button>
@@ -563,11 +610,196 @@ This data should be verified against MRWA records before making database updates
             </Button>
             <Button
               onClick={() => setShowAddForm(false)}
-              variant="outline"
-              className="border-gray-600 text-gray-300"
+              className="bg-gray-700 hover:bg-gray-600 text-white"
             >
               Cancel
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Sign Form Modal */}
+      {editingSign && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-blue-700">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-blue-400">Edit Speed Sign: {editingSign.id}</h3>
+              <Button
+                onClick={() => setEditingSign(null)}
+                className="bg-gray-700 hover:bg-gray-600 text-white h-8 w-8 p-0"
+              >
+                ✕
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              {/* Road Info */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Road ID</label>
+                <input
+                  type="text"
+                  value={editingSign.road_id}
+                  onChange={(e) => setEditingSign({ ...editingSign, road_id: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Road Name</label>
+                <input
+                  type="text"
+                  value={editingSign.road_name || ''}
+                  onChange={(e) => setEditingSign({ ...editingSign, road_name: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Common Name</label>
+                <input
+                  type="text"
+                  value={editingSign.common_usage_name || ''}
+                  onChange={(e) => setEditingSign({ ...editingSign, common_usage_name: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              {/* Sign Location */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">SLK</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editingSign.slk}
+                  onChange={(e) => setEditingSign({ ...editingSign, slk: parseFloat(e.target.value) || 0 })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Latitude</label>
+                <input
+                  type="number"
+                  step="0.00000001"
+                  value={editingSign.lat || ''}
+                  onChange={(e) => setEditingSign({ ...editingSign, lat: e.target.value ? parseFloat(e.target.value) : undefined })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Longitude</label>
+                <input
+                  type="number"
+                  step="0.00000001"
+                  value={editingSign.lon || ''}
+                  onChange={(e) => setEditingSign({ ...editingSign, lon: e.target.value ? parseFloat(e.target.value) : undefined })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              {/* Sign Configuration */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Direction</label>
+                <select
+                  value={editingSign.direction}
+                  onChange={(e) => setEditingSign({ ...editingSign, direction: e.target.value as 'True Left' | 'True Right' })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                >
+                  <option value="True Left">True Left (↗ increasing SLK)</option>
+                  <option value="True Right">True Right (↙ decreasing SLK)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Sign Type</label>
+                <select
+                  value={editingSign.sign_type}
+                  onChange={(e) => setEditingSign({ ...editingSign, sign_type: e.target.value as 'Single' | 'Double' })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                >
+                  <option value="Single">Single Sided</option>
+                  <option value="Double">Double Sided</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Replicated?</label>
+                <select
+                  value={editingSign.replicated ? 'yes' : 'no'}
+                  onChange={(e) => setEditingSign({ ...editingSign, replicated: e.target.value === 'yes' })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                >
+                  <option value="yes">Yes - matching sign</option>
+                  <option value="no">No - standalone</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">End SLK</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editingSign.end_slk || ''}
+                  onChange={(e) => setEditingSign({ ...editingSign, end_slk: e.target.value ? parseFloat(e.target.value) : undefined })}
+                  disabled={!editingSign.replicated}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              {/* Speeds */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Approach Speed</label>
+                <input
+                  type="number"
+                  step="10"
+                  value={editingSign.approach_speed || ''}
+                  onChange={(e) => setEditingSign({ ...editingSign, approach_speed: e.target.value ? parseInt(e.target.value) : undefined })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Front Speed *</label>
+                <input
+                  type="number"
+                  step="10"
+                  value={editingSign.front_speed}
+                  onChange={(e) => setEditingSign({ ...editingSign, front_speed: parseInt(e.target.value) || 0 })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Back Speed {editingSign.sign_type === 'Double' ? '*' : ''}</label>
+                <input
+                  type="number"
+                  step="10"
+                  value={editingSign.back_speed || ''}
+                  onChange={(e) => setEditingSign({ ...editingSign, back_speed: e.target.value ? parseInt(e.target.value) : undefined })}
+                  disabled={editingSign.sign_type !== 'Double'}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white disabled:opacity-50"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Note</label>
+                <input
+                  type="text"
+                  value={editingSign.note || ''}
+                  onChange={(e) => setEditingSign({ ...editingSign, note: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-700">
+              <Button onClick={handleEditSign} className="bg-blue-600 hover:bg-blue-700">
+                Generate Updated JSON
+              </Button>
+              <Button
+                onClick={() => setEditingSign(null)}
+                className="bg-gray-700 hover:bg-gray-600 text-white"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -670,33 +902,41 @@ This data should be verified against MRWA records before making database updates
                   </div>
                 )}
 
-                {/* Delete button */}
-                <div className="mt-3 pt-3 border-t border-gray-700 ml-8 flex justify-end">
+                {/* Edit/Delete buttons */}
+                <div className="mt-3 pt-3 border-t border-gray-700 ml-8 flex justify-end gap-2">
+                  {/* Edit Button */}
+                  <Button
+                    onClick={() => setEditingSign(sign)}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 h-7 text-xs"
+                  >
+                    Edit
+                  </Button>
+                  
+                  {/* Delete Button */}
                   {deleteConfirm === sign.id ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-red-400 text-sm">Delete this sign?</span>
+                      <span className="text-red-400 text-sm">Delete?</span>
                       <Button
                         onClick={() => handleDeleteSign(sign.id)}
                         size="sm"
                         className="bg-red-600 hover:bg-red-700 h-7 text-xs"
                       >
-                        Confirm
+                        Yes
                       </Button>
                       <Button
                         onClick={() => setDeleteConfirm(null)}
                         size="sm"
-                        variant="outline"
-                        className="border-gray-600 text-gray-300 h-7 text-xs"
+                        className="bg-gray-700 hover:bg-gray-600 h-7 text-xs"
                       >
-                        Cancel
+                        No
                       </Button>
                     </div>
                   ) : (
                     <Button
                       onClick={() => setDeleteConfirm(sign.id)}
                       size="sm"
-                      variant="outline"
-                      className="border-red-600 text-red-400 hover:bg-red-900/30 h-7 text-xs"
+                      className="bg-red-900/50 hover:bg-red-800 text-red-300 h-7 text-xs"
                     >
                       Delete
                     </Button>
