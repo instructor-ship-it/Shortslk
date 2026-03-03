@@ -39,6 +39,8 @@ interface OverridesData {
 }
 
 // Default data from the static file
+// Direction: "True Left" = sign faces INCREASING SLK traffic = Left Carriageway
+// Direction: "True Right" = sign faces DECREASING SLK traffic = Right Carriageway
 const DEFAULT_SIGNS: SpeedSignOverride[] = [
   {
     id: "M031-S001",
@@ -48,7 +50,7 @@ const DEFAULT_SIGNS: SpeedSignOverride[] = [
     slk: 64.81,
     lat: -32.09942741,
     lon: 116.90796019,
-    direction: "True Right",
+    direction: "True Left",
     sign_type: "Double",
     replicated: true,
     start_slk: 64.81,
@@ -57,7 +59,7 @@ const DEFAULT_SIGNS: SpeedSignOverride[] = [
     front_speed: 80,
     back_speed: 110,
     verified_by: "field_observation",
-    verified_date: "2025-03-01",
+    verified_date: "2026-03-02",
     note: "110→80 zone boundary. Road widening completed 2024.",
     source: "community_verified",
     mrwa_slk: 64.80,
@@ -69,9 +71,9 @@ const DEFAULT_SIGNS: SpeedSignOverride[] = [
     road_name: "Northam Cranbrook Rd",
     common_usage_name: "Great Southern Hwy",
     slk: 65.98,
-    lat: -32.10420020,
-    lon: 116.91892960,
-    direction: "True Right",
+    lat: -32.1042002,
+    lon: 116.9189296,
+    direction: "True Left",
     sign_type: "Double",
     replicated: true,
     start_slk: 65.98,
@@ -80,7 +82,7 @@ const DEFAULT_SIGNS: SpeedSignOverride[] = [
     front_speed: 60,
     back_speed: 80,
     verified_by: "field_observation",
-    verified_date: "2025-03-01",
+    verified_date: "2026-03-02",
     note: "80→60 zone boundary. Road widening completed 2024. 250m discrepancy from MRWA.",
     source: "community_verified",
     mrwa_slk: 65.73,
@@ -94,7 +96,7 @@ const DEFAULT_SIGNS: SpeedSignOverride[] = [
     slk: 67.62,
     lat: -32.11706637,
     lon: 116.92667158,
-    direction: "True Right",
+    direction: "True Left",
     sign_type: "Double",
     replicated: true,
     start_slk: 67.62,
@@ -103,7 +105,7 @@ const DEFAULT_SIGNS: SpeedSignOverride[] = [
     front_speed: 90,
     back_speed: 60,
     verified_by: "field_observation",
-    verified_date: "2025-03-01",
+    verified_date: "2026-03-02",
     note: "60→90 zone boundary. Road widening completed 2024. 280m discrepancy from MRWA.",
     source: "community_verified",
     mrwa_slk: 67.34,
@@ -117,7 +119,7 @@ const DEFAULT_SIGNS: SpeedSignOverride[] = [
     slk: 69.19,
     lat: -32.13044808,
     lon: 116.92978109,
-    direction: "True Right",
+    direction: "True Left",
     sign_type: "Double",
     replicated: true,
     start_slk: 69.19,
@@ -126,7 +128,7 @@ const DEFAULT_SIGNS: SpeedSignOverride[] = [
     front_speed: 110,
     back_speed: 90,
     verified_by: "field_observation",
-    verified_date: "2025-03-01",
+    verified_date: "2026-03-02",
     note: "90→110 zone boundary. Road widening completed 2024.",
     source: "community_verified",
     mrwa_slk: 69.18,
@@ -209,7 +211,7 @@ export default function OverridesPage() {
     slk: '',
     lat: '',
     lon: '',
-    direction: 'True Right' as 'True Left' | 'True Right',
+    direction: 'True Left' as 'True Left' | 'True Right',
     sign_type: 'Double' as 'Single' | 'Double',
     replicated: true,
     start_slk: '',
@@ -384,7 +386,7 @@ export default function OverridesPage() {
         slk: '',
         lat: '',
         lon: '',
-        direction: 'True Right',
+        direction: 'True Left',
         sign_type: 'Double',
         replicated: true,
         start_slk: '',
@@ -726,7 +728,7 @@ This data should be verified against MRWA records before making database updates
           <h1 className="text-xl font-bold">Speed Sign Overrides</h1>
         </div>
         <div className="text-xs text-gray-500">
-          vRC 1.2.0 | Local Storage
+          vRC 1.2.1 | Local Storage
         </div>
       </div>
 

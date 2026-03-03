@@ -17,7 +17,7 @@ import {
 import { useGpsTracking, useGpsSettings, type GpsTrackingConfig } from '@/hooks/useGpsTracking';
 
 // App version
-const APP_VERSION = 'RC 1.0.4';
+const APP_VERSION = 'RC 1.2.1';
 
 // GPS lag compensation from localStorage
 interface GpsLagSettings {
@@ -77,6 +77,37 @@ function DriveContent() {
     stopTracking,
     getEkfInfo,
   } = useGpsTracking(destRoadId, destSlk, settings as Partial<GpsTrackingConfig>);
+
+  // Check if currently in an override zone
+  const currentOverrideZone = useMemo(() => {
+    if (!roadInfo || speedZones.length === 0) return null;
+    
+    const currentSlk = roadInfo.slk;
+    
+    // Find zones that contain this SLK
+    const matchingZones = speedZones.filter(z => currentSlk >= z.start_slk && currentSlk <= z.end_slk);
+    
+    if (matchingZones.length === 0) return null;
+    
+    // Check for directional zones based on travel direction
+    if (slkDirection === 'increasing') {
+      // INCREASING SLK = Left carriageway
+      const leftZone = matchingZones.find(z => z.carriageway === 'Left');
+      const singleZone = matchingZones.find(z => z.carriageway === 'Single');
+      const activeZone = leftZone || singleZone || matchingZones[0];
+      return activeZone?.is_override ? activeZone : null;
+    } else if (slkDirection === 'decreasing') {
+      // DECREASING SLK = Right carriageway
+      const rightZone = matchingZones.find(z => z.carriageway === 'Right');
+      const singleZone = matchingZones.find(z => z.carriageway === 'Single');
+      const activeZone = rightZone || singleZone || matchingZones[0];
+      return activeZone?.is_override ? activeZone : null;
+    }
+    
+    // No direction known yet - check if any matching zone is an override
+    const overrideZone = matchingZones.find(z => z.is_override);
+    return overrideZone || null;
+  }, [roadInfo, speedZones, slkDirection]);
 
   // Calculate upcoming speed zone with bidirectional support
   const upcomingZone = (() => {
@@ -491,20 +522,37 @@ function DriveContent() {
 
             {/* Speed Limit */}
             <div className="text-center flex-1">
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center gap-2">
+                {/* Override indicator - pulsating icon */}
+                {currentOverrideZone && (
+                  <div className="flex flex-col items-center">
+                    <span 
+                      className="text-lg animate-pulse" 
+                      style={{ animationDuration: '1s' }}
+                      title="Community Verified Override Zone"
+                    >
+                      ✓
+                    </span>
+                    <span className="text-[10px] text-green-400 font-medium">VERIFIED</span>
+                  </div>
+                )}
                 <div className={`rounded-full w-16 h-16 flex items-center justify-center ${
                   isSpeeding
                     ? 'bg-red-900 border-4 border-red-500 animate-pulse'
                     : upcomingZone && upcomingZone.isDecrease
                       ? 'bg-black border-4 border-amber-400'  // Yellow/amber for approaching decrease
-                      : 'bg-black border-4 border-white'     // White for current
+                      : currentOverrideZone
+                        ? 'bg-black border-4 border-green-400'  // Green border for override zone
+                        : 'bg-black border-4 border-white'     // White for current
                 }`}>
                   <span className={`font-bold text-xl ${
                     isSpeeding 
                       ? 'text-red-400' 
                       : upcomingZone && upcomingZone.isDecrease
                         ? 'text-amber-400'
-                        : 'text-white'
+                        : currentOverrideZone
+                          ? 'text-green-400'
+                          : 'text-white'
                   }`}>
                     {upcomingZone && upcomingZone.isDecrease ? upcomingZone.speedLimit : speedLimit}
                   </span>
@@ -516,7 +564,10 @@ function DriveContent() {
               {upcomingZone && upcomingZone.isDecrease && (
                 <p className="text-xs text-amber-400">Slow down ahead</p>
               )}
-              {speedZones.length > 0 && !upcomingZone && (
+              {currentOverrideZone && !upcomingZone && (
+                <p className="text-xs text-green-400">Community Verified Zone</p>
+              )}
+              {speedZones.length > 0 && !upcomingZone && !currentOverrideZone && (
                 <p className="text-xs text-gray-500">From MRWA Data</p>
               )}
             </div>

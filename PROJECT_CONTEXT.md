@@ -1,7 +1,7 @@
 # TC Work Zone Locator - Project Context
 
 > **Last Updated:** 2026-03-02
-> **Current Version:** RC 1.2.0
+> **Current Version:** RC 1.2.1
 > **GitHub:** https://github.com/instructor-ship-it/roadfinder.git
 > **Branches:** master, main (kept in sync)
 > **Project Directory:** `/home/z/my-project/`
@@ -250,6 +250,7 @@ src/
 - Shows upcoming speed zone changes BEFORE reaching the sign
 - **Yellow border**: Speed DECREASE ahead (warning shown)
 - **White border**: Current speed (no warning for increases)
+- **Green border**: Community-verified override zone (pulsating ✓ icon)
 - Uses GPS lag compensation for accurate timing
 - Configurable lookahead time (default 5 seconds)
 
@@ -296,6 +297,20 @@ src/
 ---
 
 ## Recent Changes (v5.x)
+
+### RC 1.2.1 - Override Zone Visual Indicator
+- **Pulsating icon for override zones**
+  - When driving through a community-verified speed zone, a pulsating ✓ icon appears
+  - Green border around speed limit circle indicates override zone
+  - "VERIFIED" label and "Community Verified Zone" text provide clear indication
+  - Helps drivers distinguish MRWA data from field-verified speed zones
+  - Added `currentOverrideZone` computed value in drive page using `useMemo`
+- **Fixed default sign direction bug**
+  - Issue: `DEFAULT_SIGNS` in overrides page had `direction: "True Right"` instead of `"True Left"`
+  - This would have created INVERTED speed zones (wrong carriageway assignments)
+  - Changed all 4 M031 signs to `direction: "True Left"`
+  - Changed form default from `True Right` to `True Left`
+  - Validated `signsToSpeedZones()` correctly processes double-sided signs
 
 ### RC 1.2.0 - Speed Sign Override System
 - **Fixed double-sided sign interpretation**
