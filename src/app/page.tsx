@@ -1193,7 +1193,7 @@ export default function Home() {
           </button>
         </div>
         <p className="text-xs text-gray-400 text-center mb-4">
-          vRC 1.2.0 {offlineReady && <span className="text-green-400">• EKF GPS • Haversine • 69K Roads • Local Storage Overrides</span>}
+          vRC 1.2.1 {offlineReady && <span className="text-green-400">• EKF GPS • Haversine • 69K Roads • Local Storage Overrides</span>}
         </p>
 
         {/* Setup Dialog */}
