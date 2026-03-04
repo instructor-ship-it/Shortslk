@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "version-check": "bash scripts/version-check.sh",
     "docs-check": "bash scripts/version-check.sh && echo '✓ Documentation versions are in sync'",
+    "setup:pdf": "pip install reportlab --break-system-packages 2>/dev/null || pip install reportlab --user",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

@@ -1,6 +1,6 @@
 # TC Work Zone Locator - Project Context
 
-> **Last Updated:** 2026-03-02
+> **Last Updated:** 2026-03-04
 > **Current Version:** RC 1.2.1
 > **GitHub:** https://github.com/instructor-ship-it/roadfinder.git
 > **Branches:** master, main (kept in sync)
@@ -332,9 +332,81 @@ When bumping version, update ALL of these files:
 4. worklog.md - Add task entry, update "Current Version:" header
 5. RC1_Test_Checklist.md - Update title version
 
+### PDF Generation
+
+The project includes PDF generation capability using Python's reportlab library.
+
+```bash
+# Setup (install reportlab)
+bun run setup:pdf
+
+# Generate User Manual PDF
+python3 scripts/create_user_manual_pdf.py
+```
+
+PDF output is saved to `/home/z/my-project/download/`
+
+See `scripts/README.md` for full documentation of available scripts.
+
+---
+
+## Offline Capability
+
+**The core features work 100% offline after downloading data.** This is essential for Traffic Controllers working in remote areas of Western Australia where cell coverage is unreliable.
+
+### What Works Offline
+| Feature | Storage | Notes |
+|---------|---------|-------|
+| Work Zone Lookup | IndexedDB | All 69,000+ roads |
+| GPS Tracking | Device + IndexedDB | EKF filtering works offline |
+| SLK Position | Computed locally | Direction detection works offline |
+| Speed Zones | IndexedDB + localStorage | Includes override zones |
+| Speed Sign Overrides | localStorage | Full CRUD operations |
+| Signage Corridor | IndexedDB | Signs, intersections, rail crossings |
+| TC Position Calculation | Computed locally | ±100m from work zone |
+| Direction Detection | Computed from GPS | True Left/True Right |
+| Google Maps Links | Generated URLs | Opens Maps app |
+
+### What Requires Internet
+| Feature | Source |
+|---------|--------|
+| Weather Data | Open-Meteo API |
+| BOM Weather Warnings | RSS Feed |
+| Nearby Amenities | Overpass API |
+| Traffic Volume | MRWA API |
+| Street View Images | Google Maps |
+
+### Tips for Remote Work
+1. Download data before leaving coverage area
+2. Test the app in coverage area first
+3. Weather and amenities sections will show "unavailable" offline
+4. All core TC functions work without internet
+
 ---
 
 ## Recent Changes (v5.x)
+
+### 2026-03-04 - Documentation Sync & PDF Generation
+- **Documentation Audit**
+  - Identified version drift: worklog.md showed RC 1.0.4, code was RC 1.2.1
+  - Updated README.md with missing RC 1.2.1 entry
+  - Updated PROJECT_CONTEXT.md with 8 missing API routes
+  - Updated RC1_Test_Checklist.md to RC 1.2.1
+  - All Word documents regenerated to RC 1.2.1
+- **Version Check Script**
+  - Created `scripts/version-check.sh` for automated consistency checking
+  - Added `version-check` and `docs-check` npm scripts
+  - Prevents future documentation drift
+- **PDF Generation Skill**
+  - Added Python reportlab library for PDF generation
+  - Created `scripts/create_user_manual_pdf.py`
+  - Added `setup:pdf` npm script
+  - Created `scripts/README.md` documenting all scripts
+- **User Manual**
+  - Created comprehensive user manual (Word + PDF)
+  - Covers all features including offline capability
+  - Includes troubleshooting guide and quick reference
+  - Saved to `/home/z/my-project/download/`
 
 ### RC 1.2.1 - Override Zone Visual Indicator
 - **Pulsating icon for override zones**
@@ -509,6 +581,26 @@ None required - all APIs are free or use static data.
 `https://github.com/instructor-ship-it/roadfinder.git`
 
 Branches: `master` and `main` (kept in sync)
+
+---
+
+## Documentation Files
+
+| File | Description | Location |
+|------|-------------|----------|
+| PROJECT_CONTEXT.md | Single source of truth (this file) | `/home/z/my-project/` |
+| README.md | Project overview, version history | `/home/z/my-project/` |
+| worklog.md | Development history | `/home/z/my-project/` |
+| RC1_Test_Checklist.md | Testing checklist | `/home/z/my-project/` |
+| TC_Work_Zone_Locator_User_Manual.pdf | End-user documentation | `/home/z/my-project/download/` |
+| TC_Work_Zone_Locator_User_Manual.docx | End-user documentation (Word) | `/home/z/my-project/download/` |
+| TC_Work_Zone_Locator_RC1_Documentation.docx | Layout & Functionality | `/home/z/my-project/docs/` |
+| TC_Work_Zone_Locator_Data_Dictionary.docx | Data structures | `/home/z/my-project/docs/` |
+| TC_Work_Zone_Locator_File_Structure.docx | Project structure | `/home/z/my-project/docs/` |
+| TC_Work_Zone_Locator_Direction_Aware_Zones.docx | Bidirectional zones | `/home/z/my-project/docs/` |
+| TC_Work_Zone_Locator_Data_Sources.docx | API sources | `/home/z/my-project/docs/` |
+| TC_Work_Zone_Locator_Program_Logic.docx | Function reference | `/home/z/my-project/docs/` |
+| TC_Work_Zone_Locator_RC1.2.1_Supplement.docx | RC 1.2.1 additions | `/home/z/my-project/docs/` |
 
 ---
 
