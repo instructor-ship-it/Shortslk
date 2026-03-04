@@ -1,7 +1,100 @@
 # TC Work Zone Locator - Work Log
 
-> **Last Updated:** 2026-03-02
-> **Current Version:** RC 1.0.4
+> **Last Updated:** 2026-03-04
+> **Current Version:** RC 1.2.1
+
+---
+
+## Task ID: 2026-03-04-002
+**Agent:** Documentation Agent
+**Task:** Documentation audit and update
+
+### Work Log:
+- Identified version mismatch: worklog.md showed RC 1.0.4, code was RC 1.2.1
+- Identified README.md missing RC 1.2.1 entry
+- Identified missing API routes in PROJECT_CONTEXT.md
+- Added missing entries to bring documentation current
+
+### Files Changed:
+- `worklog.md` (version header, added RC 1.2.0 and RC 1.2.1 entries, updated session summary)
+- `README.md` (added RC 1.2.1 version history entry)
+- `PROJECT_CONTEXT.md` (added 8 missing API routes to key files section)
+- `RC1_Test_Checklist.md` (updated to RC 1.2.1, added override tests section)
+
+### Stage Summary:
+- Version: RC 1.2.1
+- All documentation files now synchronized with code version
+- API routes fully documented
+- Test checklist updated with override zone tests
+
+---
+
+## Task ID: 2026-03-02-010
+**Agent:** Main Agent
+**Task:** RC 1.2.1 - Override Zone Visual Indicator
+
+### Features Added:
+1. **Pulsating Icon for Override Zones**
+   - When driving through a community-verified speed zone, a pulsating ✓ icon appears
+   - Green border around speed limit circle indicates override zone
+   - "VERIFIED" label and "Community Verified Zone" text provide clear indication
+   - Helps drivers distinguish MRWA data from field-verified speed zones
+   - Added `currentOverrideZone` computed value in drive page using `useMemo`
+
+2. **Fixed Default Sign Direction Bug**
+   - Issue: `DEFAULT_SIGNS` in overrides page had `direction: "True Right"` instead of `"True Left"`
+   - This would have created INVERTED speed zones (wrong carriageway assignments)
+   - Changed all 4 M031 signs to `direction: "True Left"`
+   - Changed form default from `True Right` to `True Left`
+   - Validated `signsToSpeedZones()` correctly processes double-sided signs
+
+### Files Changed:
+- `src/app/drive/page.tsx` (override zone visual indicator)
+- `src/app/overrides/page.tsx` (default direction fix)
+
+### Stage Summary:
+- Version: RC 1.2.1
+- Visual indicator helps identify community-verified zones at a glance
+- Direction bug fix prevents incorrect zone creation
+- Pending push to GitHub
+
+---
+
+## Task ID: 2026-03-02-009
+**Agent:** Main Agent
+**Task:** RC 1.2.0 - Speed Sign Override System
+
+### Features Added:
+1. **Fixed Double-Sided Sign Interpretation**
+   - Issue: `signsToSpeedZones()` only used `front_speed`, ignored `back_speed`
+   - Fix: Double signs with different speeds now create TWO zones (one per direction)
+   - Double signs with same speeds create ONE Single carriageway zone
+
+2. **Fixed Carriageway Mapping**
+   - Corrected: True Left = Left Carriageway = INCREASING SLK
+   - Corrected: True Right = Right Carriageway = DECREASING SLK
+   - Updated `signsToSpeedZones()` and `getSpeedLimitForDirection()` functions
+
+3. **Mobile Export Fix**
+   - File downloads create empty files on some mobile browsers
+   - Solution: Export displays data in textarea for copy/paste
+   - Added "Copy to Clipboard" button for reliable mobile export
+
+4. **Merged Context Files**
+   - Merged AI_CONTEXT.md into PROJECT_CONTEXT.md for single source of truth
+   - Added domain expertise prompt and terminology reference
+
+### Files Changed:
+- `src/lib/offline-db.ts` (signsToSpeedZones function, carriageway mapping)
+- `src/app/overrides/page.tsx` (mobile export fix)
+- `PROJECT_CONTEXT.md` (merged context files)
+
+### Stage Summary:
+- Version: RC 1.2.0
+- Double-sided signs now correctly create directional zones
+- Mobile users can reliably export override data
+- Single source of truth for project context
+- Pending push to GitHub
 
 ---
 
@@ -425,23 +518,25 @@ else:
 ## Session Summary
 
 ### Recent Commits:
-1. `06a35ed` - RC 1.0.2: Fix road priority - use as tiebreaker only within 50m, auto-clear IndexedDB
-2. `c20515a` - RC 1.0.1: Version bump, update docs with road priority fix details
-3. `03100bb` - RC 1.0: Add worklog.md, update documentation
-4. `ca0e7d1` - RC 1.0: Prioritize State Roads over Local Roads in GPS tracking
-5. `b5f559f` - RC 1.0: Add comprehensive Glossary of Terms
-6. `aeb49e1` - RC 1.0: Update documentation with new corrections UI
+1. RC 1.2.1 - Override Zone Visual Indicator, Fixed default sign direction bug
+2. RC 1.2.0 - Fixed double-sided sign interpretation, Mobile export fix, Merged context files
+3. RC 1.0.4 - Sign-based override system with direction-aware input
+4. `06a35ed` - RC 1.0.2: Fix road priority - use as tiebreaker only within 50m, auto-clear IndexedDB
+5. `c20515a` - RC 1.0.1: Version bump, update docs with road priority fix details
+6. `03100bb` - RC 1.0: Add worklog.md, update documentation
 
 ### Documentation Files:
 | File | Description |
 |------|-------------|
+| PROJECT_CONTEXT.md | Single source of truth (merged AI_CONTEXT.md) |
 | TC_Work_Zone_Locator_Glossary.docx | Terms & definitions |
 | TC_Work_Zone_Locator_Direction_Aware_Zones.docx | Bidirectional zones |
 | TC_Work_Zone_Locator_Data_Dictionary.docx | Data structures |
 | TC_Work_Zone_Locator_Procedures_Functions.docx | Function reference |
 | TC_Work_Zone_Locator_File_Structure.docx | Project structure |
 | TC_Work_Zone_Locator_RC1_Documentation.docx | Main documentation |
+| RC1_Test_Checklist.md | Testing checklist |
 
 ### Branch Status:
-- `main`: Up to date with `origin/main`
-- `master`: Synced with `main`
+- `main`: Primary branch
+- `master`: Kept in sync with `main`

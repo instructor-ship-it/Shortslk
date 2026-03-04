@@ -1,4 +1,4 @@
-# TC Work Zone Locator - RC 1.0 Test Checklist
+# TC Work Zone Locator - RC 1.2.1 Test Checklist
 
 ## Pre-Test Setup
 
@@ -67,11 +67,9 @@
 - [ ] Collapsible
 - [ ] Corridor bounds shown (±700m)
 - [ ] INTERSECTIONS show only within ±100m of work zone
-- [ ] SPEED RESTRICTION SIGNS listed with:
-  - [ ] "COVER REQUIRED" in red for signs near intersections
-  - [ ] Warning about distance from intersection
+- [ ] SPEED RESTRICTION SIGNS listed
 - [ ] WARNING SIGNS listed (curves, advisory speeds)
-- [ ] Total items and "Signs requiring cover" summary
+- [ ] Total items summary
 - [ ] NO Regulatory Signs section (removed in RC 1.0)
 
 ### TC Positions Section
@@ -135,7 +133,7 @@
 ## SLK Tracking Tests (/drive)
 
 ### Page Load
-- [ ] Version shows "RC 1.0"
+- [ ] Version shows "RC 1.2.1"
 - [ ] "EKF Filtering Active" shows in purple
 - [ ] "Offline Ready" shows in green if data downloaded
 
@@ -151,12 +149,14 @@
 - [ ] Speed turns red when over limit
 - [ ] Speed limit shown in black circle
 - [ ] Circle border amber if approaching speed decrease
-- [ ] Circle border red if speeding
+- [ ] Circle border white for current speed or speed increases
+- [ ] Circle border GREEN if in community-verified override zone
+- [ ] Pulsating ✓ icon shows when in override zone
+- [ ] "VERIFIED" label shows for override zones
 - [ ] EKF status indicator shows:
   - [ ] Confidence dot (green/yellow/orange/cyan)
   - [ ] "High/Medium/Low/Predicted Confidence" text
   - [ ] "±X.XXm accuracy" text
-- [ ] NO "lookahead compensation active" message (removed in RC 1.0)
 
 ### Current Location Section
 - [ ] Road ID shown in green
@@ -189,6 +189,41 @@
 - [ ] Lag time calculated from SLK difference
 - [ ] APPLY button saves to GPS settings
 - [ ] EXPORT button generates CSV
+
+---
+
+## Speed Sign Override Tests (/overrides)
+
+### Page Load
+- [ ] Version shows "RC 1.2.1"
+- [ ] Storage mode shows "Local Storage"
+- [ ] Existing overrides displayed in table
+
+### Add Override
+- [ ] Form shows all fields:
+  - [ ] Road ID (text input)
+  - [ ] Road Name (text input)
+  - [ ] SLK (number input)
+  - [ ] Direction (True Left/True Right buttons)
+  - [ ] Sign Type (Single/Double buttons)
+  - [ ] Replicated (checkbox)
+  - [ ] Start SLK (number input)
+  - [ ] End SLK (number input)
+  - [ ] Approach Speed (number input)
+  - [ ] Front Speed (number input)
+  - [ ] Back Speed (number input, double-sided only)
+- [ ] Default direction is "True Left"
+- [ ] Add button saves override
+- [ ] New override appears in table
+
+### Export/Import
+- [ ] Export shows data in textarea (mobile-friendly)
+- [ ] Copy to Clipboard button works
+- [ ] Import from JSON file works
+
+### Delete Override
+- [ ] Delete button shows confirmation
+- [ ] Confirm removes override from list
 
 ---
 
@@ -266,6 +301,7 @@
 - [ ] Dark buttons: Dark blue (#1E40AF)
 - [ ] Section headers: Blue text (#60A5FA)
 - [ ] Warning text: Amber (#FBBF24)
+- [ ] Override zone border: Green
 
 ### Button Sizes
 - [ ] Small icon buttons: h-7 w-7
@@ -281,7 +317,7 @@
 
 ## Final Checks
 
-- [ ] Version displays "RC 1.0" on all pages
+- [ ] Version displays "RC 1.2.1" on all pages
 - [ ] No console errors in browser dev tools
 - [ ] No TypeScript build errors
 - [ ] All features documented in Word docs

@@ -192,14 +192,22 @@ src/
 │   ├── calibrate/page.tsx    # GPS calibration tool
 │   ├── overrides/page.tsx    # Speed sign override management
 │   └── api/
-│       ├── roads/route.ts    # Road data, SLK coordinates
-│       ├── gps/route.ts       # GPS to SLK conversion
-│       ├── weather/route.ts   # Weather data (Open-Meteo)
-│       ├── warnings/route.ts  # BOM weather warnings RSS feed
-│       ├── traffic/route.ts   # Traffic volume data
-│       ├── places/route.ts    # Nearby amenities (hospital, fuel, toilet)
-│       ├── intersections/route.ts  # Cross road detection
-│       └── admin-sync/route.ts     # MRWA direct sync
+│       ├── roads/route.ts         # Road data, SLK coordinates
+│       ├── gps/route.ts           # GPS to SLK conversion
+│       ├── weather/route.ts       # Weather data (Open-Meteo)
+│       ├── warnings/route.ts      # BOM weather warnings RSS feed
+│       ├── traffic/route.ts       # Traffic volume data
+│       ├── places/route.ts        # Nearby amenities (hospital, fuel, toilet)
+│       ├── intersections/route.ts # Cross road detection
+│       ├── admin-sync/route.ts    # MRWA direct sync
+│       ├── overrides/route.ts     # Override storage (localStorage pass-through)
+│       ├── speed-compare/route.ts # MRWA vs OSM speed limit comparison
+│       ├── osm-speed/route.ts     # OpenStreetMap speed limit data
+│       ├── speed-verify/route.ts  # Speed verification
+│       ├── speedlimit/route.ts    # Speed limit lookup
+│       ├── download-signs/route.ts# Sign data download
+│       ├── export-pdf/route.ts    # Work zone report export
+│       └── sync-data/route.ts     # Offline data sync
 ├── lib/
 │   ├── offline-db.ts        # IndexedDB storage, signage corridor, sign-to-zone logic
 │   ├── mrwa_api.ts          # MRWA ArcGIS API integration

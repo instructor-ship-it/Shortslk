@@ -217,7 +217,18 @@ src/
 
 ## Version History
 
-### RC 1.2.0 (Current) - Local Storage Overrides
+### RC 1.2.1 (Current) - Override Zone Visual Indicator
+- **NEW: Visual indicator for community-verified zones**
+  - Pulsating ✓ icon appears when driving through override zones
+  - Green border around speed limit circle indicates verified zone
+  - "VERIFIED" label and "Community Verified Zone" text for clarity
+  - Helps drivers distinguish MRWA data from field-verified speed zones
+- **FIXED: Default sign direction bug**
+  - `DEFAULT_SIGNS` now correctly uses `direction: "True Left"`
+  - Prevents inverted speed zones (wrong carriageway assignments)
+  - Form default changed from `True Right` to `True Left`
+
+### RC 1.2.0 - Local Storage Overrides
 - **MAJOR: LocalStorage-based storage** - Data now persists on your device
   - Works on all hosting platforms (Vercel, Netlify, local)
   - No server-side file writes needed
