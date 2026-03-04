@@ -304,6 +304,36 @@ src/
 
 ---
 
+## Development
+
+### Version Consistency Check
+
+Run before committing to ensure documentation matches code version:
+
+```bash
+bun run version-check
+```
+
+Checks version consistency across:
+- `src/app/page.tsx` - App header version display
+- `src/app/drive/page.tsx` - Drive page version display
+- `src/app/overrides/page.tsx` - Overrides page version display
+- `PROJECT_CONTEXT.md` - "Current Version:" header
+- `README.md` - Version history "(Current)" marker
+- `worklog.md` - "Current Version:" header
+- `RC1_Test_Checklist.md` - Title version
+
+### Updating Versions
+
+When bumping version, update ALL of these files:
+1. Code files (page.tsx, drive/page.tsx, overrides/page.tsx)
+2. PROJECT_CONTEXT.md "Current Version:" header
+3. README.md - Add new entry to Version History with "(Current)", remove "(Current)" from previous
+4. worklog.md - Add task entry, update "Current Version:" header
+5. RC1_Test_Checklist.md - Update title version
+
+---
+
 ## Recent Changes (v5.x)
 
 ### RC 1.2.1 - Override Zone Visual Indicator
