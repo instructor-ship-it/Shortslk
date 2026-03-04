@@ -5,6 +5,40 @@
 
 ---
 
+## Task ID: 2026-03-04-003
+**Agent:** Documentation Agent
+**Task:** Add version-check script for documentation consistency
+
+### Work Log:
+- Created `scripts/version-check.sh` for automated version consistency checking
+- Added `version-check` and `docs-check` scripts to package.json
+- Updated PROJECT_CONTEXT.md with Development section documenting:
+  - How to run version-check
+  - Files checked for version consistency
+  - Checklist for updating versions
+
+### Files Changed:
+- `scripts/version-check.sh` (new file)
+- `package.json` (added version-check and docs-check scripts)
+- `PROJECT_CONTEXT.md` (added Development section)
+
+### Usage:
+```bash
+bun run version-check
+```
+
+Output:
+```
+✅ All versions match: RC 1.2.1
+```
+
+### Stage Summary:
+- Version: RC 1.2.1
+- Automated version consistency checking available
+- Pushed to GitHub (main branch)
+
+---
+
 ## Task ID: 2026-03-04-002
 **Agent:** Documentation Agent
 **Task:** Documentation audit and update
