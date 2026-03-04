@@ -1180,7 +1180,7 @@ export default function Home() {
         <div className="flex items-center justify-between mb-1">
           <div className="w-8"></div>
           <h1 className="text-xl font-bold text-center flex-1">
-            TC Work Zone Locator
+            TC SLK
           </h1>
           <button
             onClick={() => setShowSetup(!showSetup)}
@@ -1193,7 +1193,7 @@ export default function Home() {
           </button>
         </div>
         <p className="text-xs text-gray-400 text-center mb-4">
-          vRC 1.2.1 {offlineReady && <span className="text-green-400">• EKF GPS • Haversine • 69K Roads • Local Storage Overrides</span>}
+          v1.0.0 {offlineReady && <span className="text-green-400">• Offline Ready</span>}
         </p>
 
         {/* Setup Dialog */}
