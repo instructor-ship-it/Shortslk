@@ -658,7 +658,7 @@ export default function Home() {
 
   const generateDebugInfo = async () => {
     const lines: string[] = []
-    lines.push('=== TC Work Zone Locator Debug Info ===')
+    lines.push('=== TC SLK Debug Info ===')
     lines.push(`Generated: ${new Date().toISOString()}`)
     lines.push(`Version: 4.0`)
     lines.push('')

@@ -579,7 +579,7 @@ export default function OverridesPage() {
 ================================
 Generated: ${new Date().toLocaleString()}
 Report Date: ${reportDate}
-Source: TC Work Zone Locator - Community Verified Speed Signs
+Source: TC SLK - Community Verified Speed Signs
 Version: ${metadata?.version || '2.0'}
 Storage: Local Device (localStorage)
 

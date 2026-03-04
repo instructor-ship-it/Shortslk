@@ -5,7 +5,7 @@
 
 import { haversineDistance } from './utils';
 
-const DB_NAME = 'RoadFinderDB';
+const DB_NAME = 'ShortslkDB';
 const DB_VERSION = 3; // Incremented for dataset metadata store
 
 // ============================================================================

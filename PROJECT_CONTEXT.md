@@ -1,8 +1,8 @@
-# TC Work Zone Locator - Project Context
+# TC SLK - Project Context
 
 > **Last Updated:** 2026-03-04
 > **Current Version:** RC 1.2.1
-> **GitHub:** https://github.com/instructor-ship-it/roadfinder.git
+> **GitHub:** https://github.com/instructor-ship-it/Shortslk.git
 > **Branches:** master, main (kept in sync)
 > **Project Directory:** `/home/z/my-project/`
 
@@ -15,12 +15,12 @@
 ### At the start of EVERY new session, tell the AI:
 
 ```
-This is the TC Work Zone Locator project. The code is on GitHub.
+This is the TC SLK project. The code is on GitHub.
 
 Run these commands to get the latest code:
 cd /home/z/my-project
 rm -rf * .* 2>/dev/null || true
-git clone https://github.com/instructor-ship-it/roadfinder.git .
+git clone https://github.com/instructor-ship-it/Shortslk.git .
 bun install
 
 Then read PROJECT_CONTEXT.md to get up to speed.
@@ -43,7 +43,7 @@ Apply the domain expertise from this file, then tell me what you understand abou
 
 ## 🧠 Domain Expertise
 
-**Apply this expertise when working on the TC Work Zone Locator project:**
+**Apply this expertise when working on the TC SLK project:**
 
 You are an expert in Australian road systems, specifically Western Australian road terminology and practices. You understand:
 
@@ -578,7 +578,7 @@ None required - all APIs are free or use static data.
 
 ## Git Repository
 
-`https://github.com/instructor-ship-it/roadfinder.git`
+`https://github.com/instructor-ship-it/Shortslk.git`
 
 Branches: `master` and `main` (kept in sync)
 

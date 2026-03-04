@@ -1,4 +1,4 @@
-# TC Work Zone Locator
+# TC SLK
 
 A mobile-friendly web application for Traffic Controller (TC) work zone planning and real-time SLK (Straight Line Kilometre) tracking using Main Roads WA ArcGIS data.
 

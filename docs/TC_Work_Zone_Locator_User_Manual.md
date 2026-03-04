@@ -1,4 +1,4 @@
-# TC Work Zone Locator - User Manual
+# TC SLK - User Manual
 
 **Version:** RC 1.2.1  
 **Date:** March 4, 2026  
@@ -23,9 +23,9 @@
 
 ## 1. Introduction
 
-### 1.1 What is TC Work Zone Locator?
+### 1.1 What is TC SLK?
 
-TC Work Zone Locator is a mobile-first web application designed specifically for Traffic Controllers working on Western Australian roads. It helps you locate work zones, track your position in real-time, and know the speed limits for any location - even in remote areas without internet access.
+TC SLK is a mobile-first web application designed specifically for Traffic Controllers working on Western Australian roads. It helps you locate work zones, track your position in real-time, and know the speed limits for any location - even in remote areas without internet access.
 
 ### 1.2 Key Features
 

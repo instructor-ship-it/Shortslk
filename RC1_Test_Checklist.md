@@ -1,8 +1,8 @@
-# TC Work Zone Locator - RC 1.2.1 Test Checklist
+# TC SLK - RC 1.2.1 Test Checklist
 
 ## Pre-Test Setup
 
-- [ ] Clone repository: `git clone https://github.com/instructor-ship-it/roadfinder.git`
+- [ ] Clone repository: `git clone https://github.com/instructor-ship-it/Shortslk.git`
 - [ ] Install dependencies: `bun install`
 - [ ] Start dev server: `bun run dev`
 - [ ] Open http://localhost:3000

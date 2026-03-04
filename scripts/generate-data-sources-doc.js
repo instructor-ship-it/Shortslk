@@ -48,7 +48,7 @@ const doc = new Document({
     headers: {
       default: new Header({ children: [new Paragraph({ 
         alignment: AlignmentType.RIGHT,
-        children: [new TextRun({ text: "TC Work Zone Locator - Data Query Sources", size: 18, color: colors.secondary })]
+        children: [new TextRun({ text: "TC SLK - Data Query Sources", size: 18, color: colors.secondary })]
       })] })
     },
     footers: {
@@ -60,7 +60,7 @@ const doc = new Document({
     children: [
       // Cover Page
       new Paragraph({ spacing: { before: 2400 } }),
-      new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun("TC Work Zone Locator")] }),
+      new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun("TC SLK")] }),
       new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200 }, children: [new TextRun({ text: "Data Query Sources Documentation", size: 36, bold: true, color: colors.secondary })] }),
       new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 400 }, children: [new TextRun({ text: "Complete Reference for All Data APIs and Sources", size: 24, color: colors.body })] }),
       new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 800 }, children: [new TextRun({ text: "Version: RC 1.0", size: 22, color: colors.secondary })] }),
@@ -75,7 +75,7 @@ const doc = new Document({
 
       // Section 1: Overview
       new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("1. Overview")] }),
-      new Paragraph({ spacing: { after: 200 }, children: [new TextRun("TC Work Zone Locator integrates data from multiple sources to provide comprehensive work zone information for Traffic Controllers in Western Australia. This document details all data sources, their API endpoints, query parameters, data structures, and how they are used within the application. Understanding these sources is essential for troubleshooting, maintenance, and future enhancements.")] }),
+      new Paragraph({ spacing: { after: 200 }, children: [new TextRun("TC SLK integrates data from multiple sources to provide comprehensive work zone information for Traffic Controllers in Western Australia. This document details all data sources, their API endpoints, query parameters, data structures, and how they are used within the application. Understanding these sources is essential for troubleshooting, maintenance, and future enhancements.")] }),
 
       new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun("1.1 Data Source Categories")] }),
       new Paragraph({ spacing: { after: 100 }, children: [new TextRun("The application uses three main categories of data sources:")] }),

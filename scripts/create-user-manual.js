@@ -19,7 +19,7 @@ const doc = new Document({
     children: [
       // Title
       new Paragraph({
-        text: "TC Work Zone Locator - User Manual",
+        text: "TC SLK - User Manual",
         heading: HeadingLevel.TITLE,
         spacing: { after: 200 }
       }),
@@ -50,9 +50,9 @@ const doc = new Document({
       // Section 1: Introduction
       new Paragraph({ text: "1. Introduction", heading: HeadingLevel.HEADING_1, spacing: { before: 300, after: 200 } }),
       
-      new Paragraph({ text: "1.1 What is TC Work Zone Locator?", heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }),
+      new Paragraph({ text: "1.1 What is TC SLK?", heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }),
       new Paragraph({
-        text: "TC Work Zone Locator is a mobile-first web application designed specifically for Traffic Controllers working on Western Australian roads. It helps you locate work zones, track your position in real-time, and know the speed limits for any location - even in remote areas without internet access.",
+        text: "TC SLK is a mobile-first web application designed specifically for Traffic Controllers working on Western Australian roads. It helps you locate work zones, track your position in real-time, and know the speed limits for any location - even in remote areas without internet access.",
         spacing: { after: 200 }
       }),
       

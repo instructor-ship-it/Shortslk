@@ -60,7 +60,7 @@ const doc = new Document({
     headers: {
       default: new Header({ children: [new Paragraph({ 
         alignment: AlignmentType.RIGHT,
-        children: [new TextRun({ text: "TC Work Zone Locator - RC 1.0 Documentation", size: 18, color: colors.secondary })]
+        children: [new TextRun({ text: "TC SLK - RC 1.0 Documentation", size: 18, color: colors.secondary })]
       })] })
     },
     footers: {
@@ -72,12 +72,12 @@ const doc = new Document({
     children: [
       // Cover Page
       new Paragraph({ spacing: { before: 2400 } }),
-      new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun("TC Work Zone Locator")] }),
+      new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun("TC SLK")] }),
       new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200 }, children: [new TextRun({ text: "Release Candidate 1.0", size: 36, bold: true, color: colors.secondary })] }),
       new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 400 }, children: [new TextRun({ text: "Complete Layout & Functionality Documentation", size: 24, color: colors.body })] }),
       new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 800 }, children: [new TextRun({ text: "Version: RC 1.0 (5.3.7)", size: 22, color: colors.secondary })] }),
       new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 100 }, children: [new TextRun({ text: "Date: March 1, 2026", size: 22, color: colors.secondary })] }),
-      new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 100 }, children: [new TextRun({ text: "Repository: https://github.com/instructor-ship-it/roadfinder", size: 20, color: colors.accent })] }),
+      new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 100 }, children: [new TextRun({ text: "Repository: https://github.com/instructor-ship-it/Shortslk", size: 20, color: colors.accent })] }),
       new Paragraph({ children: [new PageBreak()] }),
 
       // Table of Contents
@@ -88,7 +88,7 @@ const doc = new Document({
 
       // Section 1: Overview
       new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("1. Overview")] }),
-      new Paragraph({ spacing: { after: 200 }, children: [new TextRun("TC Work Zone Locator is a mobile-first Progressive Web Application (PWA) designed for Traffic Controllers in Western Australia. The application provides real-time GPS-based SLK (Straight Line Kilometre) tracking, work zone location lookup, weather information, and offline capability for remote area operations. This documentation serves as the complete reference for RC 1.0, capturing all layout specifications, functionality details, and code implementations to enable full restoration if needed.")] }),
+      new Paragraph({ spacing: { after: 200 }, children: [new TextRun("TC SLK is a mobile-first Progressive Web Application (PWA) designed for Traffic Controllers in Western Australia. The application provides real-time GPS-based SLK (Straight Line Kilometre) tracking, work zone location lookup, weather information, and offline capability for remote area operations. This documentation serves as the complete reference for RC 1.0, capturing all layout specifications, functionality details, and code implementations to enable full restoration if needed.")] }),
       
       new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun("1.1 Application Architecture")] }),
       new Paragraph({ spacing: { after: 100 }, children: [new TextRun("The application is built using Next.js 15 with App Router architecture, featuring three main pages:")] }),
@@ -197,7 +197,7 @@ const doc = new Document({
 
       new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun("11.1 Home Page - Input State")] }),
       new Paragraph({ spacing: { after: 100 }, children: [new TextRun("When the home page loads without results, the following elements are visible:")] }),
-      new Paragraph({ numbering: { reference: "bullet-list", level: 0 }, children: [new TextRun("Header: TC Work Zone Locator title, v5.3.7 subtitle with green offline status, green gear icon (settings)")] }),
+      new Paragraph({ numbering: { reference: "bullet-list", level: 0 }, children: [new TextRun("Header: TC SLK title, v5.3.7 subtitle with green offline status, green gear icon (settings)")] }),
       new Paragraph({ numbering: { reference: "bullet-list", level: 0 }, children: [new TextRun("Start SLK Tracking button: Dark blue (bg-blue-800), full width, with red pin icon")] }),
       new Paragraph({ numbering: { reference: "bullet-list", level: 0 }, children: [new TextRun("GPS Location section: Collapsible, red pin icon, green 'Find by GPS Location' text")] }),
       new Paragraph({ numbering: { reference: "bullet-list", level: 0 }, children: [new TextRun("Region dropdown: Dark gray background, white text, shows selected region")] }),
@@ -238,7 +238,7 @@ const doc = new Document({
       createFileReferenceTable(),
 
       new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun("13.2 Quick Restoration Steps")] }),
-      new Paragraph({ numbering: { reference: "numbered-list-4", level: 0 }, children: [new TextRun("Clone repository: git clone https://github.com/instructor-ship-it/roadfinder.git")] }),
+      new Paragraph({ numbering: { reference: "numbered-list-4", level: 0 }, children: [new TextRun("Clone repository: git clone https://github.com/instructor-ship-it/Shortslk.git")] }),
       new Paragraph({ numbering: { reference: "numbered-list-4", level: 0 }, children: [new TextRun("Install dependencies: bun install")] }),
       new Paragraph({ numbering: { reference: "numbered-list-4", level: 0 }, children: [new TextRun("Run development server: bun run dev")] }),
       new Paragraph({ numbering: { reference: "numbered-list-4", level: 0 }, children: [new TextRun("Access at http://localhost:3000")] }),

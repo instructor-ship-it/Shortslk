@@ -1,4 +1,4 @@
-# TC Work Zone Locator - Work Log
+# TC SLK - Work Log
 
 > **Last Updated:** 2026-03-04
 > **Current Version:** RC 1.2.1
@@ -281,7 +281,7 @@ Direction labels were reversed. In Australian left-hand driving:
 - Version: RC 1.0.3
 - Commit: `01415e6` - "RC 1.0.3: Update README with Speed Zone Override System documentation"
 - Pushed to both `origin/main` and `origin/master`
-- GitHub repo: https://github.com/instructor-ship-it/roadfinder
+- GitHub repo: https://github.com/instructor-ship-it/Shortslk
 
 ---
 
